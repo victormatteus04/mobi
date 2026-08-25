@@ -11,12 +11,15 @@
 # "qos": "sensor_data" (best effort/volatile, padrao de sensor), "static"
 #        (reliable/transient local, usado por /tf_static) ou omitido (default
 #        reliable/volatile).
+# "rate_hz": taxa esperada (medida em testes reais), usada so pela validacao
+#            pos-gravacao (scripts/validate_bag.py) para sinalizar taxa muito
+#            abaixo do esperado. Omitir = validacao nao compara taxa.
 sensor_groups:
   base:
     label: "Base (odometria, bateria, sonares, TOFs)"
     required:
-      - {topic: /odom, type: nav_msgs/msg/Odometry, label: base-odom}
-      - {topic: /battery_voltage, type: std_msgs/msg/Float32, label: base-bateria}
+      - {topic: /odom, type: nav_msgs/msg/Odometry, label: base-odom, rate_hz: 100}
+      - {topic: /battery_voltage, type: std_msgs/msg/Float32, label: base-bateria, rate_hz: 1}
     optional:
       - {topic: /diagnostics, type: diagnostic_msgs/msg/DiagnosticArray}
       - {topic: /joy, type: sensor_msgs/msg/Joy}
@@ -35,16 +38,16 @@ sensor_groups:
   ouster:
     label: "Ouster (LiDAR 3D OS-0-128)"
     required:
-      - {topic: /ouster/points, type: sensor_msgs/msg/PointCloud2, qos: sensor_data, label: ouster-nuvem}
-      - {topic: /ouster/imu, type: sensor_msgs/msg/Imu, qos: sensor_data, label: ouster-imu}
+      - {topic: /ouster/points, type: sensor_msgs/msg/PointCloud2, qos: sensor_data, label: ouster-nuvem, rate_hz: 10}
+      - {topic: /ouster/imu, type: sensor_msgs/msg/Imu, qos: sensor_data, label: ouster-imu, rate_hz: 100}
     optional:
       - {topic: /ouster/scan, type: sensor_msgs/msg/LaserScan, qos: sensor_data}
 
   d435i:
     label: "D435i (RGB-D)"
     required:
-      - {topic: /d435i/color/image_raw, type: sensor_msgs/msg/Image, qos: sensor_data, label: d435i-rgb}
-      - {topic: /d435i/aligned_depth_to_color/image_raw, type: sensor_msgs/msg/Image, qos: sensor_data, label: d435i-depth}
+      - {topic: /d435i/color/image_raw, type: sensor_msgs/msg/Image, qos: sensor_data, label: d435i-rgb, rate_hz: 30}
+      - {topic: /d435i/aligned_depth_to_color/image_raw, type: sensor_msgs/msg/Image, qos: sensor_data, label: d435i-depth, rate_hz: 30}
     optional:
       - {topic: /d435i/color/camera_info, type: sensor_msgs/msg/CameraInfo}
       - {topic: /d435i/aligned_depth_to_color/camera_info, type: sensor_msgs/msg/CameraInfo}
@@ -57,8 +60,8 @@ sensor_groups:
   t265:
     label: "T265 (VIO / pose)"
     required:
-      - {topic: /t265/pose/sample, type: nav_msgs/msg/Odometry, qos: sensor_data, label: t265-pose}
-      - {topic: /t265/imu, type: sensor_msgs/msg/Imu, qos: sensor_data, label: t265-imu}
+      - {topic: /t265/pose/sample, type: nav_msgs/msg/Odometry, qos: sensor_data, label: t265-pose, rate_hz: 200}
+      - {topic: /t265/imu, type: sensor_msgs/msg/Imu, qos: sensor_data, label: t265-imu, rate_hz: 200}
     optional:
       - {topic: /t265/fisheye1/image_raw, type: sensor_msgs/msg/Image, qos: sensor_data}
       - {topic: /t265/fisheye2/image_raw, type: sensor_msgs/msg/Image, qos: sensor_data}
@@ -66,8 +69,8 @@ sensor_groups:
   d455:
     label: "D455 (RGB-D, futura)"
     required:
-      - {topic: /d455/color/image_raw, type: sensor_msgs/msg/Image, qos: sensor_data, label: d455-rgb}
-      - {topic: /d455/aligned_depth_to_color/image_raw, type: sensor_msgs/msg/Image, qos: sensor_data, label: d455-depth}
+      - {topic: /d455/color/image_raw, type: sensor_msgs/msg/Image, qos: sensor_data, label: d455-rgb, rate_hz: 30}
+      - {topic: /d455/aligned_depth_to_color/image_raw, type: sensor_msgs/msg/Image, qos: sensor_data, label: d455-depth, rate_hz: 30}
     optional:
       - {topic: /d455/color/camera_info, type: sensor_msgs/msg/CameraInfo}
       - {topic: /d455/aligned_depth_to_color/camera_info, type: sensor_msgs/msg/CameraInfo}

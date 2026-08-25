@@ -194,6 +194,36 @@ case "${command_name}" in
         chown -R $(id -u):$(id -g) /bags/${name}/extracted
       " -- "$@"
     ;;
+  validate)
+    name="${1:?Uso: ./mobi.sh validate NOME}"
+    ensure_realsense_image
+    docker compose run --rm --no-deps bag-recorder bash -c "
+      python3 /mobi/validate_bag.py --bag-path /bags/${name} && \
+      chown $(id -u):$(id -g) /bags/${name}/validation_report.json
+    "
+    ;;
+  preview)
+    name="${1:?Uso: ./mobi.sh preview NOME}"
+    ensure_realsense_image
+    docker compose run --rm --no-deps bag-recorder bash -c "
+      python3 /mobi/preview_bag.py --bag-path /bags/${name} && \
+      chown -R $(id -u):$(id -g) /bags/${name}/preview
+    "
+    ;;
+  catalog)
+    ensure_realsense_image
+    docker compose run --rm --no-deps bag-recorder bash -c "
+      python3 /mobi/build_catalog.py --bags-dir /bags && \
+      chown $(id -u):$(id -g) /bags/index.html /bags/catalog.json
+    "
+    ;;
+  process)
+    name="${1:?Uso: ./mobi.sh process NOME}"
+    "${BASH_SOURCE[0]}" extract "${name}"
+    "${BASH_SOURCE[0]}" validate "${name}"
+    "${BASH_SOURCE[0]}" preview "${name}"
+    "${BASH_SOURCE[0]}" catalog
+    ;;
   play)
     name="${1:?Uso: ./mobi.sh play NOME}"
     shift || true
@@ -238,6 +268,10 @@ Uso:
   ./mobi.sh bag [NOME] [base,ouster,d435i,t265,d455]
   ./mobi.sh bag-info NOME
   ./mobi.sh extract NOME [--images-format png|jpg] [--topics /t1,/t2]
+  ./mobi.sh validate NOME
+  ./mobi.sh preview NOME
+  ./mobi.sh catalog
+  ./mobi.sh process NOME    # extract + validate + preview + catalog, em sequencia
   ./mobi.sh play NOME [args extras do ros2 bag play]
 
 Selecao manual de topicos na gravacao (alem ou no lugar dos grupos acima):

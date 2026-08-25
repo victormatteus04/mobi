@@ -85,7 +85,7 @@ for topic in "${required[@]}"; do
   wait_for_message "${topic}" "${required_type[${topic}]:-}"
 done
 
-mapfile -t advertised < <(ros2 topic list --no-daemon)
+mapfile -t advertised < <(ros2 topic list --no-daemon --spin-time 2)
 declare -A available=()
 for topic in "${advertised[@]}"; do
   available["${topic}"]=1

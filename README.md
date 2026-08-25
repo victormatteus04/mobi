@@ -249,10 +249,9 @@ ou pelo painel web (`./mobi.sh dashboard`), que tem os mesmos campos no
 formulário de gravação. A geração de metadata é *best-effort*: se falhar por
 qualquer motivo, a bag em si nunca é invalidada (o aviso vai só pro log).
 
-**Próximos passos do pipeline de dataset** (ainda não implementados, na fila):
-validação automática pós-gravação (gaps, taxa vs esperado), preview/
-thumbnail, e catálogo/versionamento pra distribuição. Extração pra formatos
-abertos (PNG/PCD/CSV/TUM) já está pronta — ver seção abaixo.
+**Pipeline completo de dataset** (extração, validação, preview e catálogo já
+prontos — ver seções abaixo). Falta só versionamento/distribuição de fato,
+que depende de onde os dados vão ficar hospedados.
 
 ### Tamanho da bag e compressão
 
@@ -310,6 +309,37 @@ Um `manifest.json` lista o que foi extraido de cada tópico. **Importante**: o
 PointCloud2 é reempacotado campo a campo (não é um memcpy do buffer cru) —
 drivers como o do Ouster deixam padding entre campos que o formato PCD não
 representa; copiar direto geraria nuvens com os campos desalinhados.
+
+## Validação, preview e catálogo
+
+```bash
+./mobi.sh validate NOME   # validation_report.json
+./mobi.sh preview NOME    # preview/thumbnail.jpg, contact_sheet.jpg, trajectory.png, pointcloud_top_view.png
+./mobi.sh catalog         # escaneia bags/*/ inteiro -> bags/index.html + bags/catalog.json
+./mobi.sh process NOME    # as 3 acima em sequencia (fluxo normal pos-gravacao)
+```
+
+**Validação** (`validate_bag.py`) lê só os timestamps que o próprio rosbag2
+gravou (não decodifica payload — rápido mesmo com bag de imagem/nuvem
+grande) e sinaliza:
+- **gaps de tempo** suspeitos (>4x o intervalo mediano do tópico);
+- **taxa observada muito abaixo da esperada** (`rate_hz` em `config/topics.yaml`,
+  <60% do esperado);
+- **tópico obrigatório do grupo gravado ausente ou vazio** na bag.
+
+Status final `ok`/`warning`/`error` conforme a gravidade do que foi achado.
+
+**Preview** (`preview_bag.py`, só cv2/numpy, sem dependência nova): thumbnail
+e contact-sheet a partir de uma câmera de cor (evita pegar profundidade/infra
+por engano), trajetória vista de cima a partir de uma odometria, e um mapa de
+densidade visto de cima acumulando todos os frames de uma nuvem de pontos —
+dá pra decidir se vale baixar a sessão inteira sem abrir a bag.
+
+**Catálogo** (`build_catalog.py`) gera `bags/index.html` (com os
+thumbnails/status de validação de cada sessão) e `bags/catalog.json`
+(mesma informação, legível por máquina). Só referências relativas — abre
+local ou funciona igual depois de subido pra qualquer lugar (Drive, servidor,
+bucket), sem precisar mudar nada.
 
 ## TF tree e visualização (RViz2/rqt em container)
 
