@@ -231,10 +231,10 @@ própria pasta da bag, sem precisar fazer nada:
 
 - `metadata.json` — schema versionado com sensores gravados, tópicos/tipos/
   contagem de mensagens (lidos do `metadata.yaml` do próprio rosbag2, não
-  suposição), horário de início/fim, e um `config_fingerprint_sha256`
-  (hash combinado do `docker-compose.yml`, `.env`, `config/*`, URDF e
-  scripts) — para saber exatamente qual configuração de software gerou
-  aquela sessão, mesmo sem git.
+  suposição), horário de início/fim, e o **commit git** (`mobi/` agora é um
+  repositório git) que gerou aquela sessão, com um aviso se havia alterações
+  não commitadas na hora da gravação (`git_dirty`). Sem repo git disponível,
+  cai num fingerprint sha256 dos arquivos de config como fallback.
 - `README.md` — a mesma informação em texto legível, pronta pra acompanhar
   o dataset quando for compartilhado.
 
