@@ -250,9 +250,9 @@ formulário de gravação. A geração de metadata é *best-effort*: se falhar p
 qualquer motivo, a bag em si nunca é invalidada (o aviso vai só pro log).
 
 **Próximos passos do pipeline de dataset** (ainda não implementados, na fila):
-extração pra formatos abertos (PNG/PCD/CSV/TUM, pra quem não usa ROS),
 validação automática pós-gravação (gaps, taxa vs esperado), preview/
-thumbnail, e catálogo/versionamento pra distribuição.
+thumbnail, e catálogo/versionamento pra distribuição. Extração pra formatos
+abertos (PNG/PCD/CSV/TUM) já está pronta — ver seção abaixo.
 
 ### Tamanho da bag e compressão
 
@@ -285,6 +285,31 @@ bag isoladamente, pare os sensores antes:
 ./mobi.sh stop ouster,d435i,t265
 ./mobi.sh play NOME
 ```
+
+## Extração para formatos abertos (sem precisar de ROS)
+
+```bash
+./mobi.sh extract NOME                        # tudo que tiver tipo suportado
+./mobi.sh extract NOME --images-format jpg    # PNG e o padrao (sem perda)
+./mobi.sh extract NOME --topics /ouster/points,/d435i/color/image_raw
+```
+
+Despacha por **tipo** de mensagem (funciona pra qualquer sessao gravada com
+`config/topics.yaml`, sem lista de sensores hardcoded):
+
+| Tipo ROS | Vira |
+|---|---|
+| `sensor_msgs/Image` | PNG (ou JPG) por frame, `images/<topico>/NNNNNN_<timestamp_ns>.png` |
+| `sensor_msgs/PointCloud2` | PCD binario por frame, `pointclouds/<topico>/` |
+| `sensor_msgs/Imu` | CSV, `imu/<topico>.csv` |
+| `nav_msgs/Odometry` | TUM (formato padrao de SLAM) + CSV, `trajectories/<topico>.tum/.csv` |
+| `sensor_msgs/CameraInfo` | YAML de calibracao (K/D/R/P), `camera_info/<topico>.yaml` |
+| `/tf_static` | `extrinsics.yaml` com todas as transformacoes estaticas |
+
+Um `manifest.json` lista o que foi extraido de cada tópico. **Importante**: o
+PointCloud2 é reempacotado campo a campo (não é um memcpy do buffer cru) —
+drivers como o do Ouster deixam padding entre campos que o formato PCD não
+representa; copiar direto geraria nuvens com os campos desalinhados.
 
 ## TF tree e visualização (RViz2/rqt em container)
 

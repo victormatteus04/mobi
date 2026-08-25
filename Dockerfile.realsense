@@ -14,6 +14,7 @@ COPY scripts/play-bag.sh /mobi/play-bag.sh
 COPY scripts/check-sensors.sh /mobi/check-sensors.sh
 COPY scripts/topics_config.py /mobi/topics_config.py
 COPY scripts/generate_metadata.py /mobi/generate_metadata.py
+COPY scripts/extract_bag.py /mobi/extract_bag.py
 
 RUN chmod +x /mobi/*.sh \
     && mkdir -p /bags

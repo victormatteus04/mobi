@@ -183,6 +183,17 @@ case "${command_name}" in
     docker compose run --rm --no-deps bag-recorder \
       ros2 bag info "/bags/${name}"
     ;;
+  extract)
+    name="${1:?Uso: ./mobi.sh extract NOME [--images-format png|jpg] [--topics t1,t2]}"
+    shift || true
+    ensure_realsense_image
+    docker compose run --rm --no-deps \
+      -e "HOST_UID=$(id -u)" -e "HOST_GID=$(id -g)" \
+      bag-recorder bash -c "
+        python3 /mobi/extract_bag.py --bag-path /bags/${name} \"\$@\" && \
+        chown -R $(id -u):$(id -g) /bags/${name}/extracted
+      " -- "$@"
+    ;;
   play)
     name="${1:?Uso: ./mobi.sh play NOME}"
     shift || true
@@ -226,6 +237,7 @@ Uso:
   ./mobi.sh devices
   ./mobi.sh bag [NOME] [base,ouster,d435i,t265,d455]
   ./mobi.sh bag-info NOME
+  ./mobi.sh extract NOME [--images-format png|jpg] [--topics /t1,/t2]
   ./mobi.sh play NOME [args extras do ros2 bag play]
 
 Selecao manual de topicos na gravacao (alem ou no lugar dos grupos acima):
