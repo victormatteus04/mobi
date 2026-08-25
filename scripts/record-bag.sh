@@ -155,6 +155,8 @@ if [[ -e "${OUTPUT_PATH}" ]]; then
     --location "${MOBI_LOCATION:-}" \
     --conditions "${MOBI_CONDITIONS:-}" \
     --notes "${MOBI_NOTES:-}" \
+    --git-commit "${MOBI_GIT_COMMIT:-}" \
+    --git-dirty "${MOBI_GIT_DIRTY:-}" \
     --config-fingerprint "${MOBI_CONFIG_FINGERPRINT:-}" \
     || echo "[AVISO] metadata.json/README.md nao gerados (bag continua valida)" >&2
 fi

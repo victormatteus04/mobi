@@ -52,6 +52,25 @@ sensor_services() {
   done
 }
 
+git_commit() {
+  git -C "${PROJECT_DIR}" rev-parse HEAD 2>/dev/null || echo ""
+}
+
+git_dirty() {
+  if ! git -C "${PROJECT_DIR}" rev-parse --git-dir >/dev/null 2>&1; then
+    echo ""
+    return
+  fi
+  if git -C "${PROJECT_DIR}" diff --quiet -- . ':!bags' ':!.env' 2>/dev/null \
+      && git -C "${PROJECT_DIR}" diff --cached --quiet -- . ':!bags' ':!.env' 2>/dev/null; then
+    echo "false"
+  else
+    echo "true"
+  fi
+}
+
+# Fallback para quando /mobi nao for um repo git (nao deveria acontecer, mas
+# generate_metadata.py sempre recebe algo identificando a config usada).
 config_fingerprint() {
   local files=(
     docker-compose.yml .env
@@ -151,6 +170,8 @@ case "${command_name}" in
       -e "MOBI_LOCATION=${MOBI_LOCATION:-}" \
       -e "MOBI_CONDITIONS=${MOBI_CONDITIONS:-}" \
       -e "MOBI_NOTES=${MOBI_NOTES:-}" \
+      -e "MOBI_GIT_COMMIT=$(git_commit)" \
+      -e "MOBI_GIT_DIRTY=$(git_dirty)" \
       -e "MOBI_CONFIG_FINGERPRINT=$(config_fingerprint)" \
       -e "HOST_UID=$(id -u)" \
       -e "HOST_GID=$(id -g)" \
@@ -183,7 +204,8 @@ case "${command_name}" in
     ensure_realsense_image
     DOCKER_BUILDKIT=0 docker build --network host \
       -f Dockerfile.dashboard -t mobi/ros2-dashboard:humble .
-    MOBI_CONFIG_FINGERPRINT="$(config_fingerprint)" docker compose up -d dashboard
+    MOBI_GIT_COMMIT="$(git_commit)" MOBI_GIT_DIRTY="$(git_dirty)" \
+      MOBI_CONFIG_FINGERPRINT="$(config_fingerprint)" docker compose up -d dashboard
     echo "Painel em http://localhost:${DASHBOARD_PORT:-8080}"
     ;;
   rqt)

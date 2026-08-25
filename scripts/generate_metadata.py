@@ -72,6 +72,8 @@ def main():
     p.add_argument("--location", default="")
     p.add_argument("--conditions", default="")
     p.add_argument("--notes", default="")
+    p.add_argument("--git-commit", default="")
+    p.add_argument("--git-dirty", default="")
     p.add_argument("--config-fingerprint", default="")
     args = p.parse_args()
 
@@ -135,6 +137,8 @@ def main():
             "topics": topics,
         },
         "software": {
+            "git_commit": args.git_commit or None,
+            "git_dirty": (args.git_dirty.lower() == "true") if args.git_dirty else None,
             "config_fingerprint_sha256": args.config_fingerprint or None,
         },
         "files": files,
@@ -199,8 +203,13 @@ def write_readme(output_path, m):
         f"./mobi.sh play {s['name']}",
         "```",
         "",
-        f"Fingerprint da configuracao usada: `{m['software']['config_fingerprint_sha256'] or '-'}`",
     ]
+    git_commit = m["software"]["git_commit"]
+    if git_commit:
+        dirty_note = " (com alteracoes locais nao commitadas)" if m["software"]["git_dirty"] else ""
+        lines.append(f"Software: commit `{git_commit[:12]}`{dirty_note}")
+    else:
+        lines.append(f"Fingerprint da configuracao usada: `{m['software']['config_fingerprint_sha256'] or '-'}`")
     with open(os.path.join(output_path, "README.md"), "w") as f:
         f.write("\n".join(lines) + "\n")
 

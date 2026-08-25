@@ -275,6 +275,8 @@ services:
       DASHBOARD_PORT: "${DASHBOARD_PORT:-8080}"
       HOST_UID: "${HOST_UID:-1000}"
       HOST_GID: "${HOST_GID:-1000}"
+      MOBI_GIT_COMMIT: "${MOBI_GIT_COMMIT:-}"
+      MOBI_GIT_DIRTY: "${MOBI_GIT_DIRTY:-}"
       MOBI_CONFIG_FINGERPRINT: "${MOBI_CONFIG_FINGERPRINT:-}"
     volumes:
       - ./bags:/bags
