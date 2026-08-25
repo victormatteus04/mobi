@@ -1,0 +1,203 @@
+:root {
+  --bg: #14161a;
+  --panel: #1c1f26;
+  --border: #2b2f38;
+  --text: #e7e9ee;
+  --muted: #8b93a3;
+  --accent: #4f8cff;
+  --ok: #3ecf72;
+  --warn: #e0b13c;
+  --bad: #e0503c;
+  --dead: #4a4f5a;
+  font-family: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+}
+
+header {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 16px 24px;
+  border-bottom: 1px solid var(--border);
+}
+
+header h1 { margin: 0; font-size: 1.3rem; font-weight: 600; }
+.muted { color: var(--muted); font-weight: 400; font-size: 0.9rem; }
+
+main {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr;
+  grid-template-areas: "status record" "bags bags";
+  gap: 16px;
+  padding: 16px 24px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+#status-panel { grid-area: status; }
+#record-panel { grid-area: record; }
+#bags-panel { grid-area: bags; }
+
+@media (max-width: 900px) {
+  main { grid-template-columns: 1fr; grid-template-areas: "status" "record" "bags"; }
+}
+
+.panel {
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 16px 18px;
+}
+
+.panel h2 {
+  margin: 0 0 12px;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--muted);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.group-card {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 10px;
+}
+
+.group-card h3 {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.topic-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 0.85rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex: none;
+  background: var(--dead);
+}
+.dot.ok { background: var(--ok); box-shadow: 0 0 6px var(--ok); }
+.dot.warn { background: var(--warn); }
+.dot.bad { background: var(--bad); }
+
+.topic-name { flex: 1; color: var(--text); }
+.topic-rate { color: var(--muted); min-width: 70px; text-align: right; }
+.topic-req { color: var(--muted); font-size: 0.75rem; }
+
+label {
+  display: block;
+  margin-bottom: 12px;
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+
+input[type="text"] {
+  display: block;
+  width: 100%;
+  margin-top: 4px;
+  padding: 8px 10px;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
+fieldset {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin: 0 0 12px;
+  padding: 8px 12px 4px;
+}
+
+fieldset legend {
+  color: var(--muted);
+  font-size: 0.8rem;
+  padding: 0 6px;
+}
+
+.checkbox-line {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.checkbox-line input { width: auto; }
+
+.group-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 0;
+  font-size: 0.88rem;
+}
+.group-check input { width: auto; margin: 0; }
+
+button {
+  border: none;
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+button.primary { background: var(--accent); color: white; }
+button.primary:hover { filter: brightness(1.1); }
+button.danger { background: var(--bad); color: white; }
+button.danger:hover { filter: brightness(1.1); }
+
+.message { color: var(--warn); font-size: 0.85rem; min-height: 1.2em; }
+
+.hidden { display: none; }
+
+.recording-badge {
+  color: var(--bad);
+  font-weight: 700;
+  margin-bottom: 10px;
+  animation: pulse 1.4s infinite;
+}
+@keyframes pulse { 50% { opacity: 0.4; } }
+
+table.kv { width: 100%; border-collapse: collapse; margin-bottom: 12px; }
+table.kv td { padding: 4px 0; font-size: 0.9rem; }
+table.kv td:first-child { color: var(--muted); width: 40%; }
+
+#rec-log {
+  margin-top: 12px;
+  max-height: 180px;
+  overflow-y: auto;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 0.75rem;
+  color: var(--muted);
+  white-space: pre-wrap;
+}
+
+#bags-table { width: 100%; border-collapse: collapse; }
+#bags-table th, #bags-table td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--border);
+  font-size: 0.88rem;
+}
+#bags-table th { color: var(--muted); font-weight: 600; }

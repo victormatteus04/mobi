@@ -1,0 +1,18 @@
+# Dados gravados (grandes, nao versionados aqui)
+bags/
+
+# Config local ativa (o template versionado e .env.example)
+.env
+
+# Python
+__pycache__/
+*.pyc
+
+# Build artefacts do colcon, caso alguem rode fora do container
+ros2_ws/**/build/
+ros2_ws/**/install/
+ros2_ws/**/log/
+
+# Editor/SO
+.DS_Store
+*.swp

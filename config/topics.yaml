@@ -1,0 +1,86 @@
+# Fonte unica de verdade dos grupos/topicos de sensor do Mobi.
+#
+# Usado por:
+#   - scripts/record-bag.sh e scripts/check-sensors.sh (via scripts/topics_config.py)
+#   - o painel web (dashboard/app.py), para montar a lista de topicos e o
+#     monitor de status ao vivo
+#
+# "required": preciso ter dado real publicando antes de comecar a gravar/
+#             considerar o grupo "ok" (tambem usados pelo monitor ao vivo).
+# "optional": gravados se estiverem disponiveis, mas nao bloqueiam nada.
+# "qos": "sensor_data" (best effort/volatile, padrao de sensor), "static"
+#        (reliable/transient local, usado por /tf_static) ou omitido (default
+#        reliable/volatile).
+sensor_groups:
+  base:
+    label: "Base (odometria, bateria, sonares, TOFs)"
+    required:
+      - {topic: /odom, type: nav_msgs/msg/Odometry, label: base-odom}
+      - {topic: /battery_voltage, type: std_msgs/msg/Float32, label: base-bateria}
+    optional:
+      - {topic: /diagnostics, type: diagnostic_msgs/msg/DiagnosticArray}
+      - {topic: /joy, type: sensor_msgs/msg/Joy}
+      - {topic: /cmd_vel, type: geometry_msgs/msg/Twist}
+      - {topic: /imus/gateway/imu, type: sensor_msgs/msg/Imu}
+      - {topic: /imus/gateway/mag, type: sensor_msgs/msg/MagneticField}
+      - {topic: /sonar_sensor/sonar_front, type: sensor_msgs/msg/Range}
+      - {topic: /sonar_sensor/sonar_left, type: sensor_msgs/msg/Range}
+      - {topic: /sonar_sensor/sonar_rear, type: sensor_msgs/msg/Range}
+      - {topic: /sonar_sensor/sonar_right, type: sensor_msgs/msg/Range}
+      - {topic: /tof3d_sensor/tof3d_front/data, type: sensor_msgs/msg/Image, qos: sensor_data}
+      - {topic: /tof3d_sensor/tof3d_left/data, type: sensor_msgs/msg/Image, qos: sensor_data}
+      - {topic: /tof3d_sensor/tof3d_rear/data, type: sensor_msgs/msg/Image, qos: sensor_data}
+      - {topic: /tof3d_sensor/tof3d_right/data, type: sensor_msgs/msg/Image, qos: sensor_data}
+
+  ouster:
+    label: "Ouster (LiDAR 3D OS-0-128)"
+    required:
+      - {topic: /ouster/points, type: sensor_msgs/msg/PointCloud2, qos: sensor_data, label: ouster-nuvem}
+      - {topic: /ouster/imu, type: sensor_msgs/msg/Imu, qos: sensor_data, label: ouster-imu}
+    optional:
+      - {topic: /ouster/scan, type: sensor_msgs/msg/LaserScan, qos: sensor_data}
+
+  d435i:
+    label: "D435i (RGB-D)"
+    required:
+      - {topic: /d435i/color/image_raw, type: sensor_msgs/msg/Image, qos: sensor_data, label: d435i-rgb}
+      - {topic: /d435i/aligned_depth_to_color/image_raw, type: sensor_msgs/msg/Image, qos: sensor_data, label: d435i-depth}
+    optional:
+      - {topic: /d435i/color/camera_info, type: sensor_msgs/msg/CameraInfo}
+      - {topic: /d435i/aligned_depth_to_color/camera_info, type: sensor_msgs/msg/CameraInfo}
+      - {topic: /d435i/infra1/image_rect_raw, type: sensor_msgs/msg/Image, qos: sensor_data}
+      - {topic: /d435i/infra1/camera_info, type: sensor_msgs/msg/CameraInfo}
+      - {topic: /d435i/infra2/image_rect_raw, type: sensor_msgs/msg/Image, qos: sensor_data}
+      - {topic: /d435i/infra2/camera_info, type: sensor_msgs/msg/CameraInfo}
+      - {topic: /d435i/imu, type: sensor_msgs/msg/Imu, qos: sensor_data}
+
+  t265:
+    label: "T265 (VIO / pose)"
+    required:
+      - {topic: /t265/pose/sample, type: nav_msgs/msg/Odometry, qos: sensor_data, label: t265-pose}
+      - {topic: /t265/imu, type: sensor_msgs/msg/Imu, qos: sensor_data, label: t265-imu}
+    optional:
+      - {topic: /t265/fisheye1/image_raw, type: sensor_msgs/msg/Image, qos: sensor_data}
+      - {topic: /t265/fisheye2/image_raw, type: sensor_msgs/msg/Image, qos: sensor_data}
+
+  d455:
+    label: "D455 (RGB-D, futura)"
+    required:
+      - {topic: /d455/color/image_raw, type: sensor_msgs/msg/Image, qos: sensor_data, label: d455-rgb}
+      - {topic: /d455/aligned_depth_to_color/image_raw, type: sensor_msgs/msg/Image, qos: sensor_data, label: d455-depth}
+    optional:
+      - {topic: /d455/color/camera_info, type: sensor_msgs/msg/CameraInfo}
+      - {topic: /d455/aligned_depth_to_color/camera_info, type: sensor_msgs/msg/CameraInfo}
+      - {topic: /d455/infra1/image_rect_raw, type: sensor_msgs/msg/Image, qos: sensor_data}
+      - {topic: /d455/infra2/image_rect_raw, type: sensor_msgs/msg/Image, qos: sensor_data}
+      - {topic: /d455/imu, type: sensor_msgs/msg/Imu, qos: sensor_data}
+
+  tf:
+    # Sem "required": nem todo grupo de sensores gera /tf (ex.: so "base" sem
+    # T265 pode nao ter nada publicando), entao isso nunca deve bloquear o
+    # inicio da gravacao. /tf_static sempre existe (publicado pelo servico
+    # "description"), mas por consistencia tambem fica so como candidato.
+    label: "TF (arvore de transformacoes)"
+    optional:
+      - {topic: /tf, type: tf2_msgs/msg/TFMessage, label: tf}
+      - {topic: /tf_static, type: tf2_msgs/msg/TFMessage, qos: static, label: tf-static}

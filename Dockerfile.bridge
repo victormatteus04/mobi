@@ -1,0 +1,79 @@
+# O artefato existente em ../ros2-ros1-bridge foi compilado para ARM64/Jetson.
+# Este builder segue o mesmo projeto de referencia, mas gera o bridge para a
+# arquitetura nativa do host (amd64 neste PC e arm64 em uma Jetson).
+FROM ros:humble-ros-base-jammy AS bridge-builder
+
+SHELL ["/bin/bash", "-o", "pipefail", "-o", "errexit", "-c"]
+
+ARG ROS1_BRIDGE_REPOSITORY=https://github.com/smith-doug/ros1_bridge.git
+ARG ROS1_BRIDGE_BRANCH=action_bridge_humble
+ARG BRIDGE_BUILD_JOBS=4
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update \
+    && apt-get install -y --no-install-recommends \
+      git \
+      ros-humble-control-msgs \
+      ros-humble-desktop \
+    && mv /etc/apt/sources.list.d/ros2.sources /tmp/ros2.sources \
+    && apt-get update \
+    && sed -i -e 's|^Conflicts: catkin|#Conflicts: catkin|' /var/lib/dpkg/status \
+    && apt-get install -f -y \
+    && apt-get download python3-catkin-pkg python3-rospkg python3-rosdistro \
+    && dpkg --force-overwrite -i python3-catkin-pkg*.deb python3-rospkg*.deb python3-rosdistro*.deb \
+    && apt-get install -f -y \
+    && apt-get install -y --no-install-recommends ros-desktop-dev \
+    && mv /tmp/ros2.sources /etc/apt/sources.list.d/ros2.sources \
+    && apt-get update \
+    && rm -rf /var/lib/apt/lists/* ./*.deb
+
+# Usa o mesmo fork/branch do builder Humble de referencia. Ele inclui as
+# correcoes atuais para Boost, arrays fixos e suporte a actions.
+RUN mkdir -p /ros-humble-ros1-bridge/src \
+    && git clone --branch "${ROS1_BRIDGE_BRANCH}" --depth 1 \
+      "${ROS1_BRIDGE_REPOSITORY}" \
+      /ros-humble-ros1-bridge/src/ros1_bridge \
+    && source /opt/ros/humble/setup.bash \
+    && cd /ros-humble-ros1-bridge \
+    && MAKEFLAGS="-j${BRIDGE_BUILD_JOBS}" colcon build \
+      --parallel-workers "${BRIDGE_BUILD_JOBS}" \
+      --cmake-args -DCMAKE_BUILD_TYPE=Release
+
+# O runtime Humble nao possui as bibliotecas ROS 1. Copiamos apenas as
+# dependencias usadas pelo bridge, conforme o builder de referencia.
+RUN cd /ros-humble-ros1-bridge/install/ros1_bridge/lib \
+    && for library in \
+      libxmlrpcpp.so \
+      librostime.so \
+      libroscpp.so \
+      libroscpp_serialization.so \
+      librosconsole.so \
+      librosconsole_log4cxx.so \
+      librosconsole_backend_interface.so \
+      liblog4cxx.so \
+      libcpp_common.so \
+      libb64.so \
+      libaprutil-1.so \
+      libapr-1.so \
+      libactionlib.so; do \
+        library_path="$(ldd libros1_bridge.so | awk -v name="${library}" '$1 ~ name {print $3; exit}')"; \
+        if [[ -n "${library_path}" ]]; then cp -L "${library_path}" ./; fi; \
+      done \
+    && rm -rf /ros-humble-ros1-bridge/build /ros-humble-ros1-bridge/log /ros-humble-ros1-bridge/src
+
+FROM ros:humble-ros-base-jammy
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update && apt-get install -y --no-install-recommends \
+      ros-humble-control-msgs \
+      ros-humble-desktop \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=bridge-builder /ros-humble-ros1-bridge /ros-humble-ros1-bridge
+COPY entrypoint-bridge.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["ros2", "run", "ros1_bridge", "dynamic_bridge", "--bridge-all-1to2-topics"]

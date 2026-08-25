@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  Desativa o transporte por memoria compartilhada (SHM) do Fast-DDS e forca
+  UDP local. O SHM usa arquivos em /dev/shm com permissao 644: quando dois
+  processos com UIDs diferentes (ex.: containers root e o host como usuario
+  comum) tentam sincronizar via SHM, um dos lados nao consegue abrir o
+  segmento em modo leitura+escrita e a entrega de mensagens falha em
+  silencio (a descoberta funciona, os dados nao chegam). UDP em loopback
+  nao depende de UID/permissao de arquivo e e rapido o suficiente para os
+  volumes de dados usados aqui.
+
+  Use o mesmo arquivo (via FASTRTPS_DEFAULT_PROFILES_FILE) em TODO processo
+  ROS 2 que precise falar com os demais: containers e ferramentas nativas do
+  host (rviz2, rqt, ros2 topic ...).
+-->
+<dds xmlns="http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles">
+  <profiles>
+    <transport_descriptors>
+      <transport_descriptor>
+        <transport_id>mobi_udp_transport</transport_id>
+        <type>UDPv4</type>
+      </transport_descriptor>
+    </transport_descriptors>
+
+    <participant profile_name="mobi_udp_only" is_default_profile="true">
+      <rtps>
+        <userTransports>
+          <transport_id>mobi_udp_transport</transport_id>
+        </userTransports>
+        <useBuiltinTransports>false</useBuiltinTransports>
+      </rtps>
+    </participant>
+  </profiles>
+</dds>

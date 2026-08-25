@@ -1,0 +1,27 @@
+FROM ros:humble-ros-base-jammy
+
+SHELL ["/bin/bash", "-c"]
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    rm -f /etc/apt/apt.conf.d/docker-clean \
+    && apt-get update && apt-get install -y --no-install-recommends \
+      ros-humble-robot-state-publisher \
+      ros-humble-xacro \
+      ros-humble-rviz2 \
+      ros-humble-rqt-image-view \
+      ros-humble-tf2-tools \
+      mesa-utils \
+      libgl1-mesa-glx \
+      libgl1-mesa-dri \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY ros2_ws /ros2_ws
+WORKDIR /ros2_ws
+RUN source /opt/ros/humble/setup.bash \
+    && colcon build --symlink-install --cmake-args -DCMAKE_BUILD_TYPE=Release
+
+COPY entrypoint-description.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["bash"]

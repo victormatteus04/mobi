@@ -1,0 +1,21 @@
+FROM ros:noetic-ros-base-focal
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ros-noetic-rosserial-client \
+      ros-noetic-rosserial-msgs \
+      ros-noetic-rosserial-python \
+      ros-noetic-joy \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY ros1_ws/src/mobi_teleop /opt/mobi_ws/src/mobi_teleop
+RUN . /opt/ros/noetic/setup.sh \
+    && cd /opt/mobi_ws \
+    && catkin_make -DCMAKE_BUILD_TYPE=Release
+
+COPY config/mobi-xbox.config.yaml /etc/mobi/mobi-xbox.config.yaml
+COPY launch/mobi-teleop.launch /etc/mobi/mobi-teleop.launch
+COPY entrypoint-ros1.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["bash"]

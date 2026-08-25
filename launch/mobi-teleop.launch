@@ -1,0 +1,16 @@
+<launch>
+  <arg name="joy_dev" default="/dev/input/js0" />
+
+  <node pkg="joy" type="joy_node" name="joy_node" output="screen">
+    <param name="dev" value="$(arg joy_dev)" />
+    <param name="deadzone" value="0.12" />
+    <param name="autorepeat_rate" value="20.0" />
+    <param name="coalesce_interval" value="0.01" />
+  </node>
+
+  <node pkg="mobi_teleop" type="mobi_joy_teleop.py"
+        name="mobi_joy_teleop" output="screen" clear_params="true">
+    <rosparam command="load" file="/etc/mobi/mobi-xbox.config.yaml" />
+    <remap from="cmd_vel" to="/cmd_vel" />
+  </node>
+</launch>

@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<title>Mobi — Painel de Sensores</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>Mobi <span class="muted">painel de sensores</span></h1>
+    <div id="clock" class="muted"></div>
+  </header>
+
+  <main>
+    <section id="status-panel" class="panel">
+      <h2>Estado dos sensores</h2>
+      <div id="groups"></div>
+    </section>
+
+    <section id="record-panel" class="panel">
+      <h2>Gravação de bag</h2>
+
+      <div id="record-idle">
+        <label>Nome da sessão
+          <input id="bag-name" type="text" placeholder="sessao_2026...">
+        </label>
+
+        <fieldset id="group-checks">
+          <legend>Grupos de sensores</legend>
+        </fieldset>
+
+        <fieldset>
+          <legend>Metadados da sessão (opcional, mas recomendado)</legend>
+          <label>Operador
+            <input id="meta-operator" type="text" placeholder="seu nome">
+          </label>
+          <label>Local
+            <input id="meta-location" type="text" placeholder="predio X, sala Y">
+          </label>
+          <label>Condições
+            <input id="meta-conditions" type="text" placeholder="indoor, luz artificial, ...">
+          </label>
+          <label>Notas
+            <input id="meta-notes" type="text" placeholder="observações livres">
+          </label>
+        </fieldset>
+
+        <label>Tópicos extra (separados por vírgula)
+          <input id="extra-topics" type="text" placeholder="/meu_topico, /outro">
+        </label>
+
+        <label class="checkbox-line">
+          <input id="topics-only" type="checkbox">
+          Gravar só os tópicos extra (ignora os grupos)
+        </label>
+
+        <button id="btn-start" class="primary">Iniciar gravação</button>
+        <p id="start-message" class="message"></p>
+      </div>
+
+      <div id="record-active" class="hidden">
+        <div class="recording-badge">● Gravando</div>
+        <table class="kv">
+          <tr><td>Sessão</td><td id="rec-name"></td></tr>
+          <tr><td>Duração</td><td id="rec-elapsed"></td></tr>
+          <tr><td>Tamanho</td><td id="rec-size"></td></tr>
+        </table>
+        <button id="btn-stop" class="danger">Parar gravação</button>
+        <pre id="rec-log"></pre>
+      </div>
+    </section>
+
+    <section id="bags-panel" class="panel">
+      <h2>Bags gravadas</h2>
+      <table id="bags-table">
+        <thead><tr><th>Nome</th><th>Tamanho</th><th>Modificado</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </section>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

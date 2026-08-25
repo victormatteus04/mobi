@@ -1,0 +1,17 @@
+# Controle Xbox 360 via sensor_msgs/Joy do ROS 1.
+# O joy_node inverte os eixos do joystick para a convencao ROS: para frente e
+# para a esquerda sao positivos.
+axis_linear: 4
+scale_linear: 0.25
+scale_linear_turbo: 0.50
+
+axis_angular: 3
+scale_angular: 0.60
+scale_angular_turbo: 1.20
+
+# O analogico direito comanda normalmente sem botao de habilitacao. RB eleva
+# temporariamente as escalas enquanto permanecer pressionado.
+enable_turbo_button: 5
+
+# Publica zero se o joystick parar de enviar dados (por exemplo, ao desconectar).
+watchdog_timeout: 0.25

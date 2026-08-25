@@ -1,0 +1,4 @@
+# Configuracao de armazenamento do rosbag2_storage_mcap: compressao Zstd por
+# chunk (lossless). Usado via `ros2 bag record --storage-config-file`.
+compression: "Zstd"
+compressionLevel: "Fast"

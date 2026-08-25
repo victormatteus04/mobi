@@ -1,0 +1,320 @@
+name: mobi
+
+x-ros1-environment: &ros1-environment
+  ROS_MASTER_URI: "http://${MOBI_HOST_IP:-10.10.10.1}:11311"
+  ROS_IP: "${MOBI_HOST_IP:-10.10.10.1}"
+
+x-ros1-service: &ros1-service
+  build:
+    context: .
+    dockerfile: Dockerfile.ros1
+    network: host
+  image: mobi/ros1-noetic:latest
+  network_mode: host
+  init: true
+  restart: unless-stopped
+  environment: *ros1-environment
+
+x-ros2-environment: &ros2-environment
+  ROS_DOMAIN_ID: "${ROS_DOMAIN_ID:-0}"
+  ROS_LOCALHOST_ONLY: "0"
+  RMW_IMPLEMENTATION: "${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}"
+  FASTRTPS_DEFAULT_PROFILES_FILE: "/etc/mobi/fastdds-udp-only.xml"
+
+x-realsense-service: &realsense-service
+  build:
+    context: .
+    dockerfile: Dockerfile.realsense
+    network: host
+  image: mobi/ros2-realsense:humble
+  network_mode: host
+  ipc: host
+  privileged: true
+  init: true
+  restart: unless-stopped
+  shm_size: "1gb"
+  volumes:
+    - /dev:/dev
+    - ./config/fastdds-udp-only.xml:/etc/mobi/fastdds-udp-only.xml:ro
+
+services:
+  ros-master:
+    <<: *ros1-service
+    container_name: mobi_ros_master
+    command: ["roscore"]
+    healthcheck:
+      test: ["CMD-SHELL", ". /opt/ros/noetic/setup.sh && rosnode list >/dev/null 2>&1"]
+      interval: 3s
+      timeout: 2s
+      retries: 20
+      start_period: 3s
+
+  rosserial:
+    <<: *ros1-service
+    container_name: mobi_rosserial
+    depends_on:
+      ros-master:
+        condition: service_healthy
+    command:
+      - rosrun
+      - rosserial_python
+      - serial_node.py
+      - tcp
+      - "${ROSSERIAL_TCP_PORT:-11411}"
+
+  joystick:
+    <<: *ros1-service
+    container_name: mobi_joystick
+    depends_on:
+      ros-master:
+        condition: service_healthy
+      rosserial:
+        condition: service_started
+    devices:
+      - "${JOY_DEVICE:-/dev/input/js0}:/dev/input/js0"
+    command:
+      - roslaunch
+      - /etc/mobi/mobi-teleop.launch
+      - joy_dev:=/dev/input/js0
+    healthcheck:
+      test: ["CMD-SHELL", ". /opt/mobi_ws/devel/setup.sh && rosnode ping -c 1 /joy_node >/dev/null 2>&1 && rosnode ping -c 1 /mobi_joy_teleop >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+      start_period: 5s
+
+  ros1-bridge:
+    build:
+      context: .
+      dockerfile: Dockerfile.bridge
+      network: host
+      args:
+        ROS1_BRIDGE_BRANCH: "action_bridge_humble"
+        BRIDGE_BUILD_JOBS: "4"
+    image: mobi/ros1-bridge-humble:latest
+    container_name: mobi_ros1_bridge
+    network_mode: host
+    ipc: host
+    init: true
+    restart: unless-stopped
+    depends_on:
+      ros-master:
+        condition: service_healthy
+      rosserial:
+        condition: service_started
+    environment:
+      <<: *ros1-environment
+      ROS_DOMAIN_ID: "${ROS_DOMAIN_ID:-0}"
+      ROS_LOCALHOST_ONLY: "0"
+      RMW_IMPLEMENTATION: "${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}"
+      FASTRTPS_DEFAULT_PROFILES_FILE: "/etc/mobi/fastdds-udp-only.xml"
+    volumes:
+      - ./config/fastdds-udp-only.xml:/etc/mobi/fastdds-udp-only.xml:ro
+    command:
+      - ros2
+      - run
+      - ros1_bridge
+      - dynamic_bridge
+      - --bridge-all-1to2-topics
+
+  description:
+    build:
+      context: .
+      dockerfile: Dockerfile.description
+      network: host
+    image: mobi/ros2-description:humble
+    container_name: mobi_description
+    network_mode: host
+    ipc: host
+    init: true
+    restart: unless-stopped
+    environment: *ros2-environment
+    volumes:
+      - ./config/fastdds-udp-only.xml:/etc/mobi/fastdds-udp-only.xml:ro
+    command: ["ros2", "launch", "mobi_description", "description.launch.py"]
+    healthcheck:
+      test: ["CMD-SHELL", ". /opt/ros/humble/setup.sh && . /ros2_ws/install/setup.sh && timeout 5 ros2 topic echo --once --qos-durability transient_local /tf_static tf2_msgs/msg/TFMessage >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  ouster:
+    profiles: ["ouster"]
+    build:
+      context: ../air_twizy_hardware/workspace/ouster-ros
+      dockerfile: Dockerfile
+      network: host
+      args:
+        ROS_DISTRO: humble
+        RMW_IMPLEMENTATION: "${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}"
+    image: mobi/ouster-ros:humble
+    container_name: mobi_ouster
+    user: "0:0"
+    network_mode: host
+    ipc: host
+    init: true
+    restart: unless-stopped
+    shm_size: "1gb"
+    environment: *ros2-environment
+    volumes:
+      - ./config/fastdds-udp-only.xml:/etc/mobi/fastdds-udp-only.xml:ro
+    command:
+      - "sensor_hostname:=${OUSTER_HOSTNAME:-169.254.216.20}"
+      - "udp_dest:=${OUSTER_UDP_DEST:-169.254.1.1}"
+      - "lidar_mode:=${OUSTER_LIDAR_MODE:-1024x10}"
+      - "timestamp_mode:=${OUSTER_TIMESTAMP_MODE:-TIME_FROM_ROS_TIME}"
+      - "point_type:=${OUSTER_POINT_TYPE:-xyzir}"
+      - "proc_mask:=PCL|IMU|SCAN|TLM"
+      - "viz:=false"
+      - "attempt_reconnect:=true"
+      - "persist_config:=false"
+    healthcheck:
+      test: ["CMD-SHELL", ". /opt/ros/humble/setup.sh && . /var/lib/build/install/setup.sh && timeout 5 ros2 topic echo --once --qos-reliability best_effort /ouster/points sensor_msgs/msg/PointCloud2 >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 7s
+      retries: 18
+      start_period: 20s
+
+  t265:
+    <<: *realsense-service
+    profiles: ["t265"]
+    container_name: mobi_t265
+    environment:
+      <<: *ros2-environment
+      CAMERA_START_DELAY: "0"
+      T265_SERIAL: "${T265_SERIAL:-}"
+    command: ["/mobi/run-realsense.sh", "t265"]
+    healthcheck:
+      test: ["CMD-SHELL", ". /opt/ros/humble/setup.sh && timeout 5 ros2 topic echo --once --qos-reliability best_effort /t265/pose/sample nav_msgs/msg/Odometry >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 7s
+      retries: 18
+      start_period: 15s
+
+  d435i:
+    <<: *realsense-service
+    profiles: ["d435i"]
+    container_name: mobi_d435i
+    environment:
+      <<: *ros2-environment
+      CAMERA_START_DELAY: "8"
+      D435I_SERIAL: "${D435I_SERIAL:-}"
+      D435I_DEVICE_TYPE: "${D435I_DEVICE_TYPE:-d435i}"
+      D435I_PROFILE: "${D435I_PROFILE:-640x480x30}"
+      D435I_ENABLE_IMU: "${D435I_ENABLE_IMU:-true}"
+      D435I_ENABLE_INFRA: "${D435I_ENABLE_INFRA:-false}"
+      D435I_ENABLE_EMITTER: "${D435I_ENABLE_EMITTER:-false}"
+    command: ["/mobi/run-realsense.sh", "d435i"]
+    healthcheck:
+      test: ["CMD-SHELL", ". /opt/ros/humble/setup.sh && timeout 5 ros2 topic echo --once --qos-reliability best_effort /d435i/color/image_raw sensor_msgs/msg/Image >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 7s
+      retries: 18
+      start_period: 25s
+
+  d455:
+    <<: *realsense-service
+    profiles: ["d455"]
+    container_name: mobi_d455
+    environment:
+      <<: *ros2-environment
+      CAMERA_START_DELAY: "16"
+      D455_SERIAL: "${D455_SERIAL:-}"
+      D455_PROFILE: "${D455_PROFILE:-640x480x30}"
+      D455_ENABLE_IMU: "${D455_ENABLE_IMU:-true}"
+      D455_ENABLE_INFRA: "${D455_ENABLE_INFRA:-false}"
+      D455_ENABLE_EMITTER: "${D455_ENABLE_EMITTER:-false}"
+    command: ["/mobi/run-realsense.sh", "d455"]
+    healthcheck:
+      test: ["CMD-SHELL", ". /opt/ros/humble/setup.sh && timeout 5 ros2 topic echo --once --qos-reliability best_effort /d455/color/image_raw sensor_msgs/msg/Image >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 7s
+      retries: 18
+      start_period: 35s
+
+  bag-recorder:
+    profiles: ["tools"]
+    build:
+      context: .
+      dockerfile: Dockerfile.realsense
+      network: host
+    image: mobi/ros2-realsense:humble
+    container_name: mobi_bag_recorder
+    network_mode: host
+    ipc: host
+    init: true
+    environment:
+      <<: *ros2-environment
+      HOST_UID: "${HOST_UID:-1000}"
+      HOST_GID: "${HOST_GID:-1000}"
+      SENSOR_WAIT_TIMEOUT: "${SENSOR_WAIT_TIMEOUT:-60}"
+      BAG_MAX_CACHE_SIZE: "${BAG_MAX_CACHE_SIZE:-1073741824}"
+      BAG_MAX_SIZE: "${BAG_MAX_SIZE:-8589934592}"
+    volumes:
+      - ./bags:/bags
+      - ./config/fastdds-udp-only.xml:/etc/mobi/fastdds-udp-only.xml:ro
+      - ./config/topics.yaml:/etc/mobi/topics.yaml:ro
+      - ./config/mcap-compression.yaml:/etc/mobi/mcap-compression.yaml:ro
+    command: ["sleep", "infinity"]
+
+  dashboard:
+    profiles: ["dashboard"]
+    build:
+      context: .
+      dockerfile: Dockerfile.dashboard
+      network: host
+    image: mobi/ros2-dashboard:humble
+    container_name: mobi_dashboard
+    network_mode: host
+    ipc: host
+    init: true
+    restart: unless-stopped
+    environment:
+      <<: *ros2-environment
+      DASHBOARD_PORT: "${DASHBOARD_PORT:-8080}"
+      HOST_UID: "${HOST_UID:-1000}"
+      HOST_GID: "${HOST_GID:-1000}"
+      MOBI_CONFIG_FINGERPRINT: "${MOBI_CONFIG_FINGERPRINT:-}"
+    volumes:
+      - ./bags:/bags
+      - ./config/fastdds-udp-only.xml:/etc/mobi/fastdds-udp-only.xml:ro
+      - ./config/topics.yaml:/etc/mobi/topics.yaml:ro
+      - ./config/mcap-compression.yaml:/etc/mobi/mcap-compression.yaml:ro
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost:${DASHBOARD_PORT:-8080}/api/config >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  gui:
+    profiles: ["gui"]
+    build:
+      context: .
+      dockerfile: Dockerfile.description
+      network: host
+    image: mobi/ros2-description:humble
+    container_name: mobi_gui
+    network_mode: host
+    ipc: host
+    init: true
+    runtime: "${GUI_RUNTIME:-nvidia}"
+    environment:
+      <<: *ros2-environment
+      DISPLAY: "${DISPLAY}"
+      XAUTHORITY: /root/.Xauthority
+      QT_X11_NO_MITSHM: "1"
+      NVIDIA_VISIBLE_DEVICES: all
+      NVIDIA_DRIVER_CAPABILITIES: all
+      # Notebook hibrido (AMD integrada + NVIDIA dedicada, prime-select
+      # "on-demand"): sem isso o contexto GL fica inconsistente entre as
+      # duas GPUs (mensagens "amdgpu: drmGetDevice2 failed" e crash do
+      # RViz2 com SIGSEGV apos alguns segundos).
+      __NV_PRIME_RENDER_OFFLOAD: "1"
+      __GLX_VENDOR_LIBRARY_NAME: "nvidia"
+    volumes:
+      - ./config/fastdds-udp-only.xml:/etc/mobi/fastdds-udp-only.xml:ro
+      - /tmp/.X11-unix:/tmp/.X11-unix:rw
+      - "${XAUTHORITY:-${HOME}/.Xauthority}:/root/.Xauthority:ro"
+    command: ["ros2", "launch", "mobi_description", "viz.launch.py"]

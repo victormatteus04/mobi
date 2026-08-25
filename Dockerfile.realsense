@@ -1,0 +1,19 @@
+ARG REALSENSE_BASE_IMAGE=realsense-d455-t265-a2m12-ros2:latest
+FROM ${REALSENSE_BASE_IMAGE}
+
+USER root
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      ros-humble-rosbag2-storage-mcap \
+      python3-yaml \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY scripts/run-realsense.sh /mobi/run-realsense.sh
+COPY scripts/record-bag.sh /mobi/record-bag.sh
+COPY scripts/play-bag.sh /mobi/play-bag.sh
+COPY scripts/check-sensors.sh /mobi/check-sensors.sh
+COPY scripts/topics_config.py /mobi/topics_config.py
+COPY scripts/generate_metadata.py /mobi/generate_metadata.py
+
+RUN chmod +x /mobi/*.sh \
+    && mkdir -p /bags
