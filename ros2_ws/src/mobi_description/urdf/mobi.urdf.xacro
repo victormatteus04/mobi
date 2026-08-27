@@ -58,6 +58,12 @@
   <xacro:property name="mast_length" value="0.55"/>
   <xacro:property name="mast_radius" value="0.006"/>
 
+  <!-- O "azimute zero" do Ouster (referencia fisica do sensor, geralmente
+       perto do conector) nao sai alinhado com a frente do robo so por causa
+       de como ele foi montado na caixa. Ajuste este valor se a orientacao
+       mudar num remonte futuro. -->
+  <xacro:property name="ouster_yaw" value="${-pi/2}"/>
+
   <!-- materiais (so visual) -->
   <material name="mobi_body_gray">
     <color rgba="0.6 0.6 0.62 1.0"/>
@@ -139,7 +145,7 @@
   <joint name="os_sensor_joint" type="fixed">
     <parent link="base_link"/>
     <child link="os_sensor"/>
-    <origin xyz="${ouster_x} 0 ${base_height + ouster_standoff}" rpy="0 0 0"/>
+    <origin xyz="${ouster_x} 0 ${base_height + ouster_standoff}" rpy="0 0 ${ouster_yaw}"/>
   </joint>
 
   <!-- D435i + T265 (face frontal) -->
