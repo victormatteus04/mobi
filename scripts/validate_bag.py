@@ -17,6 +17,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 import topics_config  # noqa: E402
 
 GAP_RATIO_WARN = 4.0  # gap > N vezes o intervalo mediano = suspeito
+MIN_GAP_ABS_S = 0.05  # e o gap em si tem que passar de 50ms, senao e so jitter
 MIN_RATE_RATIO_WARN = 0.6  # taxa observada < 60% da esperada = suspeito
 
 
@@ -46,7 +47,14 @@ def analyze_topic(timestamps_ns):
     median_dt = percentile(diffs_sorted, 0.5) if diffs else None
     max_gap = max(diffs) if diffs else 0.0
     gap_threshold = median_dt * GAP_RATIO_WARN if median_dt else None
-    gap_count = sum(1 for d in diffs if gap_threshold and d > gap_threshold)
+    # Precisa passar do limiar relativo (N x mediana) E de um piso absoluto:
+    # se a mediana ficar perto de zero (timestamps duplicados/arredondados,
+    # comum em topicos de alta taxa), "4x a mediana" vira quase zero e
+    # qualquer micro-jitter normal passaria a contar como gap.
+    gap_count = sum(
+        1 for d in diffs
+        if gap_threshold and d > gap_threshold and d > MIN_GAP_ABS_S
+    )
     observed_rate = (n - 1) / duration_s if duration_s > 0 else None
     return {
         "count": n,
