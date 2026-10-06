@@ -8,16 +8,16 @@
 # ATENCAO: L2/R2 (eixos 3 e 4) repousam em -1. Nunca use a config do Xbox
 # com este controle: o eixo linear dela (4) faria o robo andar de re sozinho.
 # O joy_node inverte os eixos para a convencao ROS (frente/esquerda positivos).
+# Analogico direito vertical = frente/re; analogico esquerdo horizontal = giro.
 axis_linear: 5
 scale_linear: 0.25
 scale_linear_turbo: 0.50
 
-axis_angular: 2
+axis_angular: 0
 scale_angular: 0.60
 scale_angular_turbo: 1.20
 
-# Mesmo comportamento do Xbox: analogico direito sem botao de habilitacao;
-# R1 pressionado = turbo.
+# Sem botao de habilitacao (como no Xbox); R1 pressionado = turbo.
 enable_turbo_button: 5
 
 # Publica zero se o controle parar de enviar dados (ex.: Bluetooth caiu).
