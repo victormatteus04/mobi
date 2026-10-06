@@ -13,6 +13,17 @@
   <node pkg="mobi_teleop" type="mobi_joy_teleop.py"
         name="mobi_joy_teleop" output="screen" clear_params="true">
     <rosparam command="load" file="$(arg joy_config)" />
+    <remap from="cmd_vel" to="/cmd_vel_joy" />
+  </node>
+
+  <!-- Unico publicador de /cmd_vel para a base: joystick > navegacao
+       (so com o homem-morto segurado) > zero. -->
+  <node pkg="mobi_teleop" type="mobi_cmd_mux.py"
+        name="mobi_cmd_mux" output="screen" clear_params="true">
+    <rosparam command="load" file="$(arg joy_config)" />
     <remap from="cmd_vel" to="/cmd_vel" />
+    <remap from="cmd_vel_joy" to="/cmd_vel_joy" />
+    <remap from="cmd_vel_nav" to="/cmd_vel_nav" />
+    <remap from="joy" to="/joy" />
   </node>
 </launch>

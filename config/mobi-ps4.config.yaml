@@ -22,3 +22,7 @@ enable_turbo_button: 5
 
 # Publica zero se o controle parar de enviar dados (ex.: Bluetooth caiu).
 watchdog_timeout: 0.25
+
+# Navegacao autonoma (mobi_cmd_mux): o Nav2 so move o robo enquanto este botao
+# estiver SEGURADO; soltar = parada. Mexer no analogico sempre tem prioridade.
+nav_enable_button: 4   # L1

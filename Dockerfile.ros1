@@ -5,6 +5,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
       ros-noetic-rosserial-msgs \
       ros-noetic-rosserial-python \
       ros-noetic-joy \
+      ros-noetic-rosbridge-server \
     && rm -rf /var/lib/apt/lists/*
 
 COPY ros1_ws/src/mobi_teleop /opt/mobi_ws/src/mobi_teleop

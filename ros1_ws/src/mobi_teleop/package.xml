@@ -2,7 +2,7 @@
 <package format="2">
   <name>mobi_teleop</name>
   <version>0.1.0</version>
-  <description>Conversor de joystick para velocidade da base Mobi.</description>
+  <description>Conversor de joystick para velocidade e multiplexador de comandos (joystick/navegacao) da base Mobi.</description>
 
   <maintainer email="dev@mobi.local">Mobi</maintainer>
   <license>MIT</license>
@@ -11,4 +11,5 @@
   <depend>geometry_msgs</depend>
   <depend>rospy</depend>
   <depend>sensor_msgs</depend>
+  <depend>std_msgs</depend>
 </package>
