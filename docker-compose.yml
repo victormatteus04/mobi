@@ -3,6 +3,9 @@ name: mobi
 x-ros1-environment: &ros1-environment
   ROS_MASTER_URI: "http://${MOBI_HOST_IP:-10.10.10.1}:11311"
   ROS_IP: "${MOBI_HOST_IP:-10.10.10.1}"
+  # Sem TTY o Python bufferiza o stdout e os logs (ex.: trocas de fonte do
+  # mobi_cmd_mux) so aparecem muito depois.
+  PYTHONUNBUFFERED: "1"
 
 x-ros1-service: &ros1-service
   build:

@@ -33,6 +33,15 @@ def launch_setup(context):
     if localization:
         rtabmap_overrides['Mem/IncrementalMemory'] = 'false'
         rtabmap_overrides['Mem/InitWMWithAllNodes'] = 'true'
+        # Aceita a 1a localizacao: com o cache (padrao) o rtabmap espera uma
+        # 2a, que so vem com o robo andando - ate la nao publica o mapa e o
+        # Nav2 fica sem costmap global. Localizacao aqui e so por ICP perto da
+        # pose de partida, sem o risco de "teleporte" do fechamento visual.
+        rtabmap_overrides['RGBD/MaxOdomCacheSize'] = '0'
+        # So LiDAR (sem fechamento visual) nao relocaliza "do nada": parte da
+        # origem do mapa (onde o mapeamento comecou). Fora dela, corrigir com
+        # o "2D Pose Estimate" do RViz (/rtabmap/initialpose).
+        rtabmap_overrides['RGBD/StartAtOrigin'] = 'true'
 
     # Sem "-d" o rtabmap continua o banco existente (mapeamento multi-sessao).
     rtabmap_arguments = ['-d'] if is_true(context, 'delete_db') and not localization else []

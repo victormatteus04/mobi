@@ -33,9 +33,8 @@
     odom_frame_id: odom       # publica odom -> base_link (convencao do Nav2)
     publish_tf: true
     expected_update_rate: 15.0   # um pouco acima dos 10 Hz do Ouster
-    # Mobi: na Thor o ICP passava de 100 ms/nuvem (p50 107 ms) e descartava
-    # quadros. Usar 1 de cada 2 pontos (131k -> 65k) antes do deskew/voxel.
-    scan_downsampling_step: 2
+    # Nao usar scan_downsampling_step com a nuvem organizada do Ouster: gera
+    # pontos invalidos e o icp_odometry aborta no kdtree do PCL (testado na Thor).
     Odom/ScanKeyFrameThr: "0.4"
     OdomF2M/ScanSubtractRadius: "0.1"     # = VoxelSize
     OdomF2M/ScanMaxSize: "10000"          # Mobi: 15000 do exemplo pesava na Thor

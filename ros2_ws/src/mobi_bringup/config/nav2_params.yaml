@@ -205,9 +205,13 @@ collision_monitor:
     cmd_vel_in_topic: "cmd_vel_smoothed"
     cmd_vel_out_topic: "cmd_vel"
     state_topic: "collision_monitor_state"
-    transform_tolerance: 0.2
+    transform_tolerance: 0.5
     source_timeout: 1.0
-    base_shift_correction: True
+    # Mobi: False. A odometria ICP sai a 10 Hz com ~65 ms de atraso, entao o TF
+    # odom->base_link "de agora" ainda nao existe; com True o monitor falhava
+    # ("would require extrapolation") e zerava todo comando. A 0.25 m/s o
+    # deslocamento ignorado e ~2.5 cm.
+    base_shift_correction: False
     stop_pub_timeout: 2.0
     polygons: ["FootprintApproach"]
     FootprintApproach:

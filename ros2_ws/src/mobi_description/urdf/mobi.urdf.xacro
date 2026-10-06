@@ -66,11 +66,12 @@
        perto do conector) nao sai alinhado com a frente do robo so por causa
        de como ele foi montado na caixa. Ajuste este valor se a orientacao
        mudar num remonte futuro.
-       +90 graus com o driver ouster-ros jazzy-0.14.2 (frente do robo = lado
-       do Ouster, confirmado pelo usuario). Com o driver Humble antigo o valor
-       validado era -90: as versoes diferem em 180 graus no frame do sensor.
+       0 grau com o driver ouster-ros jazzy-0.14.2: ajustado pelo usuario
+       comparando o corpo do robo com a nuvem no RViz (corpo girado 90 graus
+       anti-horario em torno da frente, onde fica o Ouster). Com o driver
+       Humble antigo o valor validado era -90.
        Conferir com ./mobi.sh check-yaw sempre que trocar o driver. -->
-  <xacro:property name="ouster_yaw" value="${pi/2}"/>
+  <xacro:property name="ouster_yaw" value="0"/>
 
   <!-- materiais (so visual) -->
   <material name="mobi_body_gray">
