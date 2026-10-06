@@ -21,6 +21,26 @@ x-ros2-environment: &ros2-environment
   RMW_IMPLEMENTATION: "${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}"
   FASTRTPS_DEFAULT_PROFILES_FILE: "/etc/mobi/fastdds-udp-only.xml"
 
+# Stack ROS 2 Jazzy (mapeamento/navegacao). Middleware Zenoh: todos os nos
+# deste host falam com o roteador local (servico zenoh-router, tcp/7447).
+x-jazzy-environment: &jazzy-environment
+  ROS_DOMAIN_ID: "${ROS_DOMAIN_ID:-0}"
+  RMW_IMPLEMENTATION: rmw_zenoh_cpp
+  # 0 = cada no espera o roteador indefinidamente antes de seguir.
+  ZENOH_ROUTER_CHECK_ATTEMPTS: "0"
+
+x-jazzy-service: &jazzy-service
+  build:
+    context: .
+    dockerfile: docker/jazzy/Dockerfile
+    network: host
+  image: mobi/jazzy:latest
+  network_mode: host
+  ipc: host
+  init: true
+  restart: unless-stopped
+  environment: *jazzy-environment
+
 x-realsense-service: &realsense-service
   build:
     context: .
@@ -117,64 +137,70 @@ services:
       - dynamic_bridge
       - --bridge-all-1to2-topics
 
+  zenoh-router:
+    <<: *jazzy-service
+    container_name: mobi_zenoh_router
+    command: ["ros2", "run", "rmw_zenoh_cpp", "rmw_zenohd"]
+
   description:
-    build:
-      context: .
-      dockerfile: Dockerfile.description
-      network: host
-    image: mobi/ros2-description:humble
+    <<: *jazzy-service
     container_name: mobi_description
-    network_mode: host
-    ipc: host
-    init: true
-    restart: unless-stopped
-    environment: *ros2-environment
-    volumes:
-      - ./config/fastdds-udp-only.xml:/etc/mobi/fastdds-udp-only.xml:ro
+    depends_on: [zenoh-router]
     command: ["ros2", "launch", "mobi_description", "description.launch.py"]
-    healthcheck:
-      test: ["CMD-SHELL", ". /opt/ros/humble/setup.sh && . /ros2_ws/install/setup.sh && timeout 5 ros2 topic echo --once --qos-durability transient_local /tf_static tf2_msgs/msg/TFMessage >/dev/null 2>&1"]
-      interval: 10s
-      timeout: 5s
-      retries: 12
-      start_period: 10s
 
   ouster:
+    <<: *jazzy-service
     profiles: ["ouster"]
-    build:
-      context: ../air_twizy_hardware/workspace/ouster-ros
-      dockerfile: Dockerfile
-      network: host
-      args:
-        ROS_DISTRO: humble
-        RMW_IMPLEMENTATION: "${RMW_IMPLEMENTATION:-rmw_fastrtps_cpp}"
-    image: mobi/ouster-ros:humble
     container_name: mobi_ouster
-    user: "0:0"
-    network_mode: host
-    ipc: host
-    init: true
-    restart: unless-stopped
+    depends_on: [zenoh-router]
     shm_size: "1gb"
-    environment: *ros2-environment
-    volumes:
-      - ./config/fastdds-udp-only.xml:/etc/mobi/fastdds-udp-only.xml:ro
     command:
+      - ros2
+      - launch
+      - ouster_ros
+      - sensor.launch.xml
       - "sensor_hostname:=${OUSTER_HOSTNAME:-169.254.216.20}"
       - "udp_dest:=${OUSTER_UDP_DEST:-169.254.1.1}"
       - "lidar_mode:=${OUSTER_LIDAR_MODE:-1024x10}"
       - "timestamp_mode:=${OUSTER_TIMESTAMP_MODE:-TIME_FROM_ROS_TIME}"
-      - "point_type:=${OUSTER_POINT_TYPE:-xyzir}"
+      - "point_type:=${OUSTER_POINT_TYPE:-original}"
       - "proc_mask:=PCL|IMU|SCAN|TLM"
       - "viz:=false"
       - "attempt_reconnect:=true"
       - "persist_config:=false"
-    healthcheck:
-      test: ["CMD-SHELL", ". /opt/ros/humble/setup.sh && . /var/lib/build/install/setup.sh && timeout 5 ros2 topic echo --once --qos-reliability best_effort /ouster/points sensor_msgs/msg/PointCloud2 >/dev/null 2>&1"]
-      interval: 10s
-      timeout: 7s
-      retries: 18
-      start_period: 20s
+
+  # SLAM com o Ouster (RTAB-Map + odometria ICP). Parametros em
+  # ros2_ws/src/mobi_bringup/config/slam_icp.yaml: o bind mount abaixo deixa
+  # editar YAML/launch sem rebuild (basta recriar o container).
+  slam:
+    <<: *jazzy-service
+    profiles: ["slam"]
+    container_name: mobi_slam
+    depends_on: [zenoh-router]
+    volumes:
+      - ./maps:/maps
+      - ./ros2_ws/src/mobi_bringup:/ros2_ws/src/mobi_bringup:ro
+    command:
+      - ros2
+      - launch
+      - mobi_bringup
+      - slam.launch.py
+      - "use_sim_time:=${SLAM_USE_SIM_TIME:-false}"
+      - "localization:=${SLAM_LOCALIZATION:-false}"
+      - "delete_db:=${SLAM_DELETE_DB:-false}"
+      - "database_path:=/maps/${SLAM_MAP_NAME:-rtabmap}.db"
+      - "deskewing:=${SLAM_DESKEWING:-false}"
+
+  # Reproducao de bag na stack Jazzy (uso: ./mobi.sh slam-bag NOME).
+  player:
+    <<: *jazzy-service
+    profiles: ["tools"]
+    container_name: mobi_player
+    restart: "no"
+    depends_on: [zenoh-router]
+    volumes:
+      - ./bags:/bags:ro
+    command: ["sleep", "infinity"]
 
   t265:
     <<: *realsense-service

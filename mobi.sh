@@ -119,7 +119,7 @@ case "${command_name}" in
     sensors="$(normalize_sensors "${1:-}")"
     validate_sensors "${sensors}"
     ensure_realsense_image
-    docker compose up -d ros-master rosserial joystick ros1-bridge description
+    docker compose up -d zenoh-router ros-master rosserial joystick ros1-bridge description
     if [[ " ${sensors} " == *" ouster "* ]]; then
       discover_ouster
     fi
@@ -235,6 +235,23 @@ case "${command_name}" in
     ensure_realsense_image
     docker compose run --rm --no-deps bag-recorder /mobi/play-bag.sh "${name}" "$@"
     ;;
+  slam)
+    # Ao vivo: precisa do Ouster no ar (./mobi.sh up ouster).
+    docker compose up -d zenoh-router description slam
+    docker compose logs -f slam
+    ;;
+  slam-bag)
+    # Offline: roda o SLAM sobre o Ouster gravado numa bag, em tempo simulado.
+    # O mapa vai para maps/NOME.db (recriado a cada execucao).
+    name="${1:?Uso: ./mobi.sh slam-bag NOME [args extras do ros2 bag play]}"
+    shift || true
+    mkdir -p maps
+    SLAM_USE_SIM_TIME=true SLAM_DELETE_DB=true SLAM_MAP_NAME="${name}" \
+      docker compose up -d --force-recreate zenoh-router description slam player
+    docker compose exec player /entrypoint.sh ros2 bag play "/bags/${name}" --clock 100 \
+      --topics /ouster/points /ouster/imu /tf_static "$@"
+    echo "Bag concluida. Mapa em maps/${name}.db (pare com: docker compose stop slam)"
+    ;;
   status)
     docker compose ps -a
     ;;
@@ -259,7 +276,7 @@ case "${command_name}" in
     docker compose run --rm --no-deps gui ros2 run rqt_image_view rqt_image_view
     ;;
   down)
-    COMPOSE_PROFILES="ouster,t265,d435i,d455,tools,gui,dashboard" docker compose down
+    COMPOSE_PROFILES="ouster,t265,d435i,d455,tools,gui,dashboard,slam" docker compose down
     ;;
   help|*)
     cat <<'EOF'
@@ -291,6 +308,8 @@ Metadados da sessao (viram metadata.json + README.md dentro da bag):
     MOBI_NOTES="teste de corredor" ./mobi.sh bag NOME [grupos]
   ./mobi.sh status
   ./mobi.sh logs [SERVICOS...]
+  ./mobi.sh slam             # SLAM ao vivo (RTAB-Map + ICP no Ouster), mapa em maps/
+  ./mobi.sh slam-bag NOME    # SLAM offline sobre o Ouster de uma bag -> maps/NOME.db
   ./mobi.sh viz              # RViz2 em container (TF, RobotModel, PointCloud2, imagens, pose)
   ./mobi.sh rqt              # rqt_image_view avulso, em container
   ./mobi.sh dashboard        # painel web: estado dos sensores + gravar bag sem terminal

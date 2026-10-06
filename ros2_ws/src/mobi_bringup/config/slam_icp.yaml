@@ -1,0 +1,63 @@
+# SLAM com LiDAR 3D (Ouster OS0-128) no RTAB-Map, odometria por ICP.
+#
+# Ponto de partida: rtabmap_examples/launch/lidar3d.launch.py (introlab/rtabmap_ros).
+# Valores marcados "Mobi" foram escolhidos para este robo e ainda precisam ser
+# validados em experimento. Parametros internos do RTAB-Map (com "/") sao strings.
+
+/**:
+  ros__parameters:
+    frame_id: base_link
+    qos: 2                    # Ouster publica best effort (perfil sensor_data)
+    wait_for_transform: 0.2
+
+    # ICP compartilhado entre odometria e fechamento de loop
+    Icp/PointToPlane: "true"
+    Icp/Iterations: "10"
+    Icp/VoxelSize: "0.1"      # indoor: 0.1-0.3; outdoor: >= 0.5
+    Icp/Epsilon: "0.001"
+    Icp/PointToPlaneK: "20"
+    Icp/PointToPlaneRadius: "0"
+    Icp/MaxTranslation: "3"
+    Icp/MaxCorrespondenceDistance: "1.0"   # regra do exemplo: 10x VoxelSize
+    Icp/Strategy: "1"                      # libpointmatcher
+    Icp/OutlierRatio: "0.7"
+    # Mobi: descarta retornos do proprio robo e pontos "sem retorno" que o
+    # Ouster entrega na origem (0,0,0).
+    Icp/RangeMin: "0.6"
+
+/**/icp_odometry:
+  ros__parameters:
+    odom_frame_id: odom       # publica odom -> base_link (convencao do Nav2)
+    publish_tf: true
+    expected_update_rate: 15.0   # um pouco acima dos 10 Hz do Ouster
+    Odom/ScanKeyFrameThr: "0.4"
+    OdomF2M/ScanSubtractRadius: "0.1"     # = VoxelSize
+    OdomF2M/ScanMaxSize: "15000"
+    OdomF2M/BundleAdjustment: "0"          # 0 = desligado (valor e estrategia, nao bool)
+    Icp/CorrespondenceRatio: "0.01"
+
+/**/rtabmap:
+  ros__parameters:
+    map_frame_id: map
+    subscribe_depth: false
+    subscribe_rgb: false
+    subscribe_odom_info: true
+    subscribe_scan_cloud: true
+    odom_sensor_sync: true
+
+    RGBD/ProximityMaxGraphDepth: "0"
+    RGBD/ProximityPathMaxNeighbors: "1"
+    RGBD/AngularUpdate: "0.05"
+    RGBD/LinearUpdate: "0.05"
+    Mem/NotLinkedNodesKept: "false"
+    Mem/STMSize: "30"
+    Reg/Strategy: "1"                     # registro por ICP
+    Icp/CorrespondenceRatio: "0.2"        # sobreposicao minima p/ aceitar loop
+
+    # Mobi: o exemplo desliga o grid; aqui ele e a entrada do Nav2 (/rtabmap/map).
+    RGBD/CreateOccupancyGrid: "true"
+    Grid/Sensor: "0"                      # 0 = a partir da nuvem do LiDAR
+    Grid/3D: "false"                      # Nav2 so precisa do grid 2D
+    Grid/CellSize: "0.05"
+    Grid/RangeMax: "20"
+    Grid/MaxObstacleHeight: "1.2"         # Mobi: robo ~0.5 m + margem

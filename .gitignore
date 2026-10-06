@@ -1,5 +1,6 @@
-# Dados gravados (grandes, nao versionados aqui)
+# Dados gravados e mapas do RTAB-Map (grandes, nao versionados aqui)
 bags/
+maps/
 
 # Config local ativa (o template versionado e .env.example)
 .env

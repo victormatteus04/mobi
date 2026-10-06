@@ -1,5 +1,24 @@
 # Mobi: gateway ROS 1 e bridge ROS 2
 
+> **Branch `jazzy` (em migracao):** a stack de mapeamento roda em ROS 2 Jazzy
+> com middleware Zenoh (`docker/jazzy/Dockerfile`, servicos `zenoh-router`,
+> `description`, `ouster`, `slam`). O restante deste README (ROS 1, bridge,
+> RealSense, gravacao, painel) ainda e Humble/Fast DDS e **nao enxerga** os
+> topicos Jazzy ate ser migrado. Versao estavel anterior: tag `v0-notebook-baseline`.
+>
+> ```bash
+> ./mobi.sh slam-bag bag-1   # SLAM offline (Ouster gravado) -> maps/bag-1.db
+> ./mobi.sh up ouster        # Ouster ao vivo (Jazzy)
+> ./mobi.sh slam             # SLAM ao vivo -> maps/rtabmap.db
+> ```
+>
+> SLAM = RTAB-Map com odometria por ICP so no Ouster (`icp_odometry` publica
+> `odom -> base_link`, `rtabmap` publica `map -> odom` e o grid 2D em
+> `/rtabmap/map`). Parametros em `ros2_ws/src/mobi_bringup/config/slam_icp.yaml`,
+> editaveis sem rebuild (recriar o container `slam`). Para deskewing ao vivo,
+> use `OUSTER_POINT_TYPE=original` (tem tempo por ponto; `xyzir` nao tem) e
+> `SLAM_DESKEWING=true`.
+
 Este Compose reúne o ambiente dos repositórios `ros1_only` e
 `ros2-ros1-bridge` para a base Mobi:
 
