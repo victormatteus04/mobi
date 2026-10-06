@@ -317,20 +317,18 @@ services:
       retries: 12
       start_period: 10s
 
+  # RViz2 (Jazzy). No notebook, com MOBI_ZENOH_CONNECT=tcp/<IP do robo>:7447
+  # no .env, conecta direto ao roteador Zenoh do robo pela rede. Salvar a
+  # config no RViz grava em ros2_ws/src/mobi_bringup/rviz (bind mount).
   gui:
+    <<: *jazzy-service
     profiles: ["gui"]
-    build:
-      context: .
-      dockerfile: Dockerfile.description
-      network: host
-    image: mobi/ros2-description:humble
     container_name: mobi_gui
-    network_mode: host
-    ipc: host
-    init: true
+    restart: "no"
     runtime: "${GUI_RUNTIME:-nvidia}"
     environment:
-      <<: *ros2-environment
+      <<: *jazzy-environment
+      MOBI_ZENOH_CONNECT: "${MOBI_ZENOH_CONNECT:-}"
       DISPLAY: "${DISPLAY}"
       XAUTHORITY: /root/.Xauthority
       QT_X11_NO_MITSHM: "1"
@@ -343,7 +341,13 @@ services:
       __NV_PRIME_RENDER_OFFLOAD: "1"
       __GLX_VENDOR_LIBRARY_NAME: "nvidia"
     volumes:
-      - ./config/fastdds-udp-only.xml:/etc/mobi/fastdds-udp-only.xml:ro
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - "${XAUTHORITY:-${HOME}/.Xauthority}:/root/.Xauthority:ro"
-    command: ["ros2", "launch", "mobi_description", "viz.launch.py"]
+      - ./ros2_ws/src/mobi_bringup:/ros2_ws/src/mobi_bringup
+    command:
+      - ros2
+      - run
+      - rviz2
+      - rviz2
+      - -d
+      - /ros2_ws/install/mobi_bringup/share/mobi_bringup/rviz/mobi_slam.rviz

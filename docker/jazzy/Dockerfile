@@ -16,6 +16,7 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
       ros-jazzy-robot-state-publisher \
       ros-jazzy-xacro \
       ros-jazzy-rosbag2-storage-mcap \
+      ros-jazzy-rviz2 \
     && rm -rf /var/lib/apt/lists/*
 
 # ouster-ros do fonte em tag fixa: o binario ros-jazzy-ouster-ros 0.15.1 aborta

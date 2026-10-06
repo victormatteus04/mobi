@@ -1,0 +1,170 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+  - Class: rviz_common/Views
+    Name: Views
+  - Class: rviz_common/Tool Properties
+    Name: Tool Properties
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz_default_plugins/Grid
+      Name: Grid
+      Enabled: true
+      Reference Frame: <Fixed Frame>
+      Cell Size: 1
+      Plane Cell Count: 60
+      Color: 110; 110; 115
+      Alpha: 0.4
+      Value: true
+    - Class: rviz_default_plugins/Map
+      Name: Mapa 2D (/rtabmap/map)
+      Enabled: true
+      Topic:
+        Value: /rtabmap/map
+        Depth: 1
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+      Update Topic:
+        Value: /rtabmap/map_updates
+        Depth: 1
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+      Alpha: 0.75
+      Color Scheme: map
+      Draw Behind: true
+      Use Timestamp: false
+      Value: true
+    - Class: rviz_default_plugins/Path
+      Name: Trajetoria (/rtabmap/mapPath)
+      Enabled: true
+      Topic:
+        Value: /rtabmap/mapPath
+        Depth: 1
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+      Color: 25; 255; 0
+      Line Style: Billboards
+      Line Width: 0.05
+      Alpha: 1
+      Value: true
+    - Class: rviz_default_plugins/PointCloud2
+      Name: Scan atual filtrado (ICP)
+      Enabled: true
+      Topic:
+        Value: /rtabmap/odom_filtered_input_scan
+        Depth: 1
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+      Style: Points
+      Size (Pixels): 3
+      Color Transformer: AxisColor
+      Axis: Z
+      Use Fixed Frame: true
+      Decay Time: 0
+      Alpha: 1
+      Queue Size: 2
+      Value: true
+    - Class: rviz_default_plugins/PointCloud2
+      Name: Mapa 3D (/rtabmap/cloud_map, pesado no Wi-Fi)
+      Enabled: false
+      Topic:
+        Value: /rtabmap/cloud_map
+        Depth: 1
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+      Style: Points
+      Size (Pixels): 2
+      Color Transformer: AxisColor
+      Axis: Z
+      Use Fixed Frame: true
+      Decay Time: 0
+      Alpha: 1
+      Queue Size: 1
+      Value: false
+    - Class: rviz_default_plugins/RobotModel
+      Name: Robo
+      Enabled: true
+      Description Source: Topic
+      Description Topic:
+        Value: /robot_description
+        Depth: 1
+        Durability Policy: Transient Local
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+      Alpha: 1
+      Visual Enabled: true
+      Collision Enabled: false
+      Value: true
+    - Class: rviz_default_plugins/TF
+      Name: TF
+      Enabled: true
+      Show Arrows: false
+      Show Axes: true
+      Show Names: false
+      Marker Scale: 0.6
+      Frame Timeout: 15
+      Value: true
+  Enabled: true
+  Global Options:
+    Background Color: 40; 40; 44
+    Fixed Frame: map
+    Frame Rate: 30
+  Name: root
+  Tools:
+    - Class: rviz_default_plugins/Interact
+      Hide Inactive Objects: true
+    - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/Select
+    - Class: rviz_default_plugins/Measure
+      Line color: 128; 128; 0
+    - Class: rviz_default_plugins/SetInitialPose
+      Covariance x: 0.25
+      Covariance y: 0.25
+      Covariance yaw: 0.07
+      Topic:
+        Value: /initialpose
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+    - Class: rviz_default_plugins/SetGoal
+      Topic:
+        Value: /goal_pose
+        Depth: 5
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+  Transformation:
+    Current:
+      Class: rviz_default_plugins/TF
+  Value: true
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Name: Current View
+      Target Frame: base_link
+      Distance: 20
+      Focal Point:
+        X: 0
+        Y: 0
+        Z: 0
+      Focal Shape Fixed Size: true
+      Focal Shape Size: 0.05
+      Near Clip Distance: 0.01
+      Pitch: 1.1
+      Yaw: 3.14
+      Value: Orbit (rviz_default_plugins)
+    Saved: ~
+Window Geometry:
+  Displays:
+    collapsed: false
+  Height: 950
+  Width: 1500
+  Hide Left Dock: false
+  Hide Right Dock: true
