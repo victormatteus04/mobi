@@ -1,5 +1,7 @@
 <launch>
   <arg name="joy_dev" default="/dev/input/js0" />
+  <!-- mobi-xbox.config.yaml ou mobi-ps4.config.yaml (eixos diferentes!) -->
+  <arg name="joy_config" default="/etc/mobi/mobi-xbox.config.yaml" />
 
   <node pkg="joy" type="joy_node" name="joy_node" output="screen">
     <param name="dev" value="$(arg joy_dev)" />
@@ -10,7 +12,7 @@
 
   <node pkg="mobi_teleop" type="mobi_joy_teleop.py"
         name="mobi_joy_teleop" output="screen" clear_params="true">
-    <rosparam command="load" file="/etc/mobi/mobi-xbox.config.yaml" />
+    <rosparam command="load" file="$(arg joy_config)" />
     <remap from="cmd_vel" to="/cmd_vel" />
   </node>
 </launch>

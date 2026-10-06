@@ -96,6 +96,7 @@ services:
       - roslaunch
       - /etc/mobi/mobi-teleop.launch
       - joy_dev:=/dev/input/js0
+      - "joy_config:=/etc/mobi/${JOY_CONFIG:-mobi-xbox.config.yaml}"
     healthcheck:
       test: ["CMD-SHELL", ". /opt/mobi_ws/devel/setup.sh && rosnode ping -c 1 /joy_node >/dev/null 2>&1 && rosnode ping -c 1 /mobi_joy_teleop >/dev/null 2>&1"]
       interval: 5s

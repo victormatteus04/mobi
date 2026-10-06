@@ -12,7 +12,7 @@ RUN . /opt/ros/noetic/setup.sh \
     && cd /opt/mobi_ws \
     && catkin_make -DCMAKE_BUILD_TYPE=Release
 
-COPY config/mobi-xbox.config.yaml /etc/mobi/mobi-xbox.config.yaml
+COPY config/mobi-xbox.config.yaml config/mobi-ps4.config.yaml /etc/mobi/
 COPY launch/mobi-teleop.launch /etc/mobi/mobi-teleop.launch
 COPY entrypoint-ros1.sh /entrypoint.sh
 RUN chmod +x /entrypoint.sh

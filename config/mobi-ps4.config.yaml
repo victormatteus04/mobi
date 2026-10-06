@@ -1,0 +1,24 @@
+# Controle PS4 (DualShock 4 v2, 054C:09CC) via Bluetooth na Jetson Thor.
+#
+# O kernel Tegra nao tem o driver hid-playstation: o controle cai no
+# hid-generic, que expoe 8 eixos / 14 botoes numa ordem diferente do Xbox:
+#   eixos:  0 LX, 1 LY, 2 RX, 3 L2, 4 R2, 5 RY, 6 dpad X, 7 dpad Y
+#   botoes: 0 quadrado, 1 X, 2 bola, 3 triangulo, 4 L1, 5 R1, 6 L2, 7 R2,
+#           8 share, 9 options, 10 L3, 11 R3, 12 PS, 13 touchpad
+# ATENCAO: L2/R2 (eixos 3 e 4) repousam em -1. Nunca use a config do Xbox
+# com este controle: o eixo linear dela (4) faria o robo andar de re sozinho.
+# O joy_node inverte os eixos para a convencao ROS (frente/esquerda positivos).
+axis_linear: 5
+scale_linear: 0.25
+scale_linear_turbo: 0.50
+
+axis_angular: 2
+scale_angular: 0.60
+scale_angular_turbo: 1.20
+
+# Mesmo comportamento do Xbox: analogico direito sem botao de habilitacao;
+# R1 pressionado = turbo.
+enable_turbo_button: 5
+
+# Publica zero se o controle parar de enviar dados (ex.: Bluetooth caiu).
+watchdog_timeout: 0.25
