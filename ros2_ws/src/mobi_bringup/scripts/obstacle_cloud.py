@@ -38,8 +38,8 @@ class ObstacleCloud(Node):
         self.max_range = p('max_range', 8.0).value
         self.voxel = p('voxel_size', 0.05).value
         # Coluna do robo em base_link (caixa 0.70 x 0.50 + mastro), com folga.
-        self.body_x = (p('body_min_x', -0.40).value, p('body_max_x', 0.40).value)
-        self.body_y = (p('body_min_y', -0.30).value, p('body_max_y', 0.30).value)
+        self.body_x = (p('body_min_x', -0.45).value, p('body_max_x', 0.42).value)
+        self.body_y = (p('body_min_y', -0.32).value, p('body_max_y', 0.32).value)
 
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)

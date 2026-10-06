@@ -34,7 +34,9 @@
   <!-- dimensoes ajustaveis -->
   <xacro:property name="base_length" value="0.70"/>
   <xacro:property name="base_width"  value="0.50"/>
-  <xacro:property name="base_height" value="0.40"/>
+  <!-- 0.32 medido: com 0.40 o chao aparecia a +8 cm de base_link na nuvem do
+       Ouster (ajuste de plano no chao, robo parado, 2026-10-06). -->
+  <xacro:property name="base_height" value="0.32"/>
 
   <xacro:property name="wheel_radius" value="0.05"/>
   <xacro:property name="wheel_width"  value="0.03"/>
@@ -43,7 +45,9 @@
 
   <xacro:property name="tof_size" value="0.02"/>
 
-  <xacro:property name="ouster_x" value="${base_length/2 - 0.10}"/>
+  <!-- Medido pelo tampo visto do sensor: a borda frontal fica ~15 cm a frente
+       do Ouster e o tampo se estende ~0.6 m para tras. -->
+  <xacro:property name="ouster_x" value="${base_length/2 - 0.15}"/>
   <xacro:property name="ouster_radius" value="0.045"/>
   <xacro:property name="ouster_height" value="0.07"/>
   <xacro:property name="ouster_standoff" value="0.02"/>
@@ -61,8 +65,12 @@
   <!-- O "azimute zero" do Ouster (referencia fisica do sensor, geralmente
        perto do conector) nao sai alinhado com a frente do robo so por causa
        de como ele foi montado na caixa. Ajuste este valor se a orientacao
-       mudar num remonte futuro. -->
-  <xacro:property name="ouster_yaw" value="${-pi/2}"/>
+       mudar num remonte futuro.
+       +90 graus com o driver ouster-ros jazzy-0.14.2 (frente do robo = lado
+       do Ouster, confirmado pelo usuario). Com o driver Humble antigo o valor
+       validado era -90: as versoes diferem em 180 graus no frame do sensor.
+       Conferir com ./mobi.sh check-yaw sempre que trocar o driver. -->
+  <xacro:property name="ouster_yaw" value="${pi/2}"/>
 
   <!-- materiais (so visual) -->
   <material name="mobi_body_gray">
