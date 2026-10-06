@@ -9,6 +9,7 @@ import argparse
 import json
 import os
 import sys
+import time
 
 import rosbag2_py
 import yaml
@@ -19,6 +20,39 @@ import topics_config  # noqa: E402
 GAP_RATIO_WARN = 4.0  # gap > N vezes o intervalo mediano = suspeito
 MIN_GAP_ABS_S = 0.05  # e o gap em si tem que passar de 50ms, senao e so jitter
 MIN_RATE_RATIO_WARN = 0.6  # taxa observada < 60% da esperada = suspeito
+PROGRESS_INTERVAL_S = 2.0
+
+
+def log(msg):
+    print(msg, flush=True)
+
+
+class ProgressLogger:
+    def __init__(self, label, total=None, interval_s=PROGRESS_INTERVAL_S):
+        self.label = label
+        self.total = total
+        self.interval_s = interval_s
+        self.count = 0
+        self.start = time.monotonic()
+        self.last_print = self.start
+
+    def step(self, n=1):
+        self.count += n
+        now = time.monotonic()
+        if now - self.last_print >= self.interval_s:
+            self._print(now)
+            self.last_print = now
+
+    def _print(self, now):
+        elapsed = now - self.start
+        if self.total:
+            pct = 100.0 * self.count / self.total
+            log(f"[{self.label}] {self.count}/{self.total} mensagens ({pct:.0f}%) - {elapsed:.0f}s")
+        else:
+            log(f"[{self.label}] {self.count} mensagens - {elapsed:.0f}s")
+
+    def done(self):
+        self._print(time.monotonic())
 
 
 def open_reader(bag_path):
@@ -77,11 +111,16 @@ def main():
 
     reader = open_reader(args.bag_path)
     type_map = {m.name: m.type for m in reader.get_all_topics_and_types()}
+    total_messages = reader.get_metadata().message_count
+    log(f"[VALIDATE] bag com {total_messages} mensagens em {len(type_map)} topicos")
 
     timestamps = {t: [] for t in type_map}
+    progress = ProgressLogger("VALIDATE-LEITURA", total=total_messages)
     while reader.has_next():
         topic, _data, t = reader.read_next()
         timestamps[topic].append(t)
+        progress.step()
+    progress.done()
 
     topic_reports = {}
     for topic, stamps in timestamps.items():
@@ -158,11 +197,11 @@ def main():
         json.dump(report, f, indent=2, ensure_ascii=False)
         f.write("\n")
 
-    print(f"[VALIDATE] status: {status}")
+    log(f"[VALIDATE] status: {status}")
     for finding in findings:
-        print(f"[VALIDATE] {finding['level'].upper()}: {finding['topic']}: {finding['message']}")
+        log(f"[VALIDATE] {finding['level'].upper()}: {finding['topic']}: {finding['message']}")
     if not findings:
-        print("[VALIDATE] nenhum problema encontrado.")
+        log("[VALIDATE] nenhum problema encontrado.")
 
 
 if __name__ == "__main__":

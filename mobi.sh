@@ -219,10 +219,15 @@ case "${command_name}" in
     ;;
   process)
     name="${1:?Uso: ./mobi.sh process NOME}"
+    echo "=== [1/4] extract ${name} ==="
     "${BASH_SOURCE[0]}" extract "${name}"
+    echo "=== [2/4] validate ${name} ==="
     "${BASH_SOURCE[0]}" validate "${name}"
+    echo "=== [3/4] preview ${name} ==="
     "${BASH_SOURCE[0]}" preview "${name}"
+    echo "=== [4/4] catalog ==="
     "${BASH_SOURCE[0]}" catalog
+    echo "=== process ${name}: concluido ==="
     ;;
   play)
     name="${1:?Uso: ./mobi.sh play NOME}"

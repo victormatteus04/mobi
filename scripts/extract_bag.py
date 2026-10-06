@@ -21,12 +21,48 @@ import csv
 import os
 import struct
 import sys
+import time
 
 import numpy as np
 import rosbag2_py
 import yaml
 from rclpy.serialization import deserialize_message
 from rosidl_runtime_py.utilities import get_message
+
+PROGRESS_INTERVAL_S = 2.0
+
+
+def log(msg):
+    print(msg, flush=True)
+
+
+class ProgressLogger:
+    def __init__(self, label, total=None, interval_s=PROGRESS_INTERVAL_S):
+        self.label = label
+        self.total = total
+        self.interval_s = interval_s
+        self.count = 0
+        self.start = time.monotonic()
+        self.last_print = self.start
+
+    def step(self, n=1):
+        self.count += n
+        now = time.monotonic()
+        if now - self.last_print >= self.interval_s:
+            self._print(now)
+            self.last_print = now
+
+    def _print(self, now):
+        elapsed = now - self.start
+        if self.total:
+            pct = 100.0 * self.count / self.total
+            log(f"[{self.label}] {self.count}/{self.total} mensagens ({pct:.0f}%) - {elapsed:.0f}s")
+        else:
+            log(f"[{self.label}] {self.count} mensagens - {elapsed:.0f}s")
+
+    def done(self):
+        self._print(time.monotonic())
+
 
 try:
     import cv2
@@ -210,34 +246,26 @@ class CameraInfoExtractor:
         self.written = True
 
 
-def extract_tf_static(reader_path, out_dir):
-    """Segunda passada: extrai as transformacoes estaticas para extrinsics.yaml."""
-    reader = open_reader(reader_path)
-    type_map = {}
-    for meta in reader.get_all_topics_and_types():
-        type_map[meta.name] = meta.type
-    if "/tf_static" not in type_map:
+def collect_static_transform(msg, transforms):
+    """Acumula um TFMessage de /tf_static num dict (chamado do loop principal,
+    sem precisar de uma segunda passada pela bag so pra isso)."""
+    for tf in msg.transforms:
+        key = f"{tf.header.frame_id} -> {tf.child_frame_id}"
+        t, r = tf.transform.translation, tf.transform.rotation
+        transforms[key] = {
+            "parent_frame": tf.header.frame_id,
+            "child_frame": tf.child_frame_id,
+            "translation": {"x": float(t.x), "y": float(t.y), "z": float(t.z)},
+            "rotation": {"x": float(r.x), "y": float(r.y), "z": float(r.z), "w": float(r.w)},
+        }
+
+
+def write_extrinsics_yaml(transforms, out_dir):
+    if not transforms:
         return
-    msg_type = get_message(type_map["/tf_static"])
-    transforms = {}
-    while reader.has_next():
-        topic, data, _t = reader.read_next()
-        if topic != "/tf_static":
-            continue
-        msg = deserialize_message(data, msg_type)
-        for tf in msg.transforms:
-            key = f"{tf.header.frame_id} -> {tf.child_frame_id}"
-            t, r = tf.transform.translation, tf.transform.rotation
-            transforms[key] = {
-                "parent_frame": tf.header.frame_id,
-                "child_frame": tf.child_frame_id,
-                "translation": {"x": float(t.x), "y": float(t.y), "z": float(t.z)},
-                "rotation": {"x": float(r.x), "y": float(r.y), "z": float(r.z), "w": float(r.w)},
-            }
-    if transforms:
-        with open(os.path.join(out_dir, "extrinsics.yaml"), "w") as f:
-            yaml.safe_dump({"static_transforms": list(transforms.values())}, f,
-                            default_flow_style=False, sort_keys=False)
+    with open(os.path.join(out_dir, "extrinsics.yaml"), "w") as f:
+        yaml.safe_dump({"static_transforms": list(transforms.values())}, f,
+                        default_flow_style=False, sort_keys=False)
 
 
 EXTRACTOR_BY_TYPE = {
@@ -263,13 +291,25 @@ def main():
 
     reader = open_reader(args.bag_path)
     type_map = {m.name: m.type for m in reader.get_all_topics_and_types()}
+    total_messages = reader.get_metadata().message_count
+    log(f"[EXTRACT] bag com {total_messages} mensagens em {len(type_map)} topicos")
 
     extractors = {}
     msg_types = {}
     counts = {}
+    static_transforms = {}
+    tf_static_msg_type = (get_message(type_map["/tf_static"])
+                           if type_map.get("/tf_static") else None)
 
+    progress = ProgressLogger("EXTRACT-LEITURA", total=total_messages)
     while reader.has_next():
         topic, data, t = reader.read_next()
+        progress.step()
+
+        if topic == "/tf_static" and tf_static_msg_type:
+            collect_static_transform(deserialize_message(data, tf_static_msg_type),
+                                      static_transforms)
+
         if topic_filter and topic not in topic_filter:
             continue
         ros_type = type_map.get(topic)
@@ -284,18 +324,20 @@ def main():
                 extractors[topic] = cls(out_dir, topic)
             msg_types[topic] = get_message(ros_type)
             counts[topic] = 0
+            log(f"[EXTRACT] iniciando {topic} ({ros_type})")
 
         msg = deserialize_message(data, msg_types[topic])
         stamp = stamp_ns(msg)
         t_ns = stamp if stamp else t
         extractors[topic].write(msg, t_ns)
         counts[topic] += 1
+    progress.done()
 
     for ex in extractors.values():
         if hasattr(ex, "close"):
             ex.close()
 
-    extract_tf_static(args.bag_path, out_dir)
+    write_extrinsics_yaml(static_transforms, out_dir)
 
     manifest = {
         "source_bag": os.path.basename(args.bag_path.rstrip("/")),
@@ -306,8 +348,9 @@ def main():
         json.dump(manifest, f, indent=2, ensure_ascii=False)
         f.write("\n")
 
+    log("[EXTRACT] concluido:")
     for topic, c in counts.items():
-        print(f"[EXTRACT] {topic} ({type_map[topic]}): {c} mensagens")
+        log(f"[EXTRACT]   {topic} ({type_map[topic]}): {c} mensagens")
     if not counts:
         print("[EXTRACT] nenhum topico com tipo suportado encontrado.", file=sys.stderr)
 

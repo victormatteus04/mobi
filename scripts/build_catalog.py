@@ -131,12 +131,18 @@ def render_html(sessions):
 """
 
 
+def log(msg):
+    print(msg, flush=True)
+
+
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--bags-dir", default="/bags")
     args = p.parse_args()
 
+    log(f"[CATALOG] escaneando {args.bags_dir}/*/metadata.json ...")
     sessions = load_sessions(args.bags_dir)
+    log(f"[CATALOG] {len(sessions)} sessao(oes) encontrada(s), gerando index.html/catalog.json")
 
     with open(os.path.join(args.bags_dir, "catalog.json"), "w") as f:
         json.dump({"sessions": [
@@ -149,7 +155,7 @@ def main():
     with open(os.path.join(args.bags_dir, "index.html"), "w") as f:
         f.write(render_html(sessions))
 
-    print(f"[CATALOG] {len(sessions)} sessao(oes) -> {args.bags_dir}/index.html")
+    log(f"[CATALOG] concluido: {len(sessions)} sessao(oes) -> {args.bags_dir}/index.html")
 
 
 if __name__ == "__main__":
