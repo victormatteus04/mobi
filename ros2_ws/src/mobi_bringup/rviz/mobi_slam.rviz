@@ -87,6 +87,78 @@ Visualization Manager:
       Alpha: 1
       Queue Size: 1
       Value: false
+    - Class: rviz_default_plugins/Map
+      Name: Nav2 costmap global
+      Enabled: true
+      Topic:
+        Value: /global_costmap/costmap
+        Depth: 1
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+      Alpha: 0.35
+      Color Scheme: costmap
+      Draw Behind: false
+      Use Timestamp: false
+      Value: true
+    - Class: rviz_default_plugins/Map
+      Name: Nav2 costmap local
+      Enabled: true
+      Topic:
+        Value: /local_costmap/costmap
+        Depth: 1
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+      Alpha: 0.6
+      Color Scheme: costmap
+      Draw Behind: false
+      Use Timestamp: false
+      Value: true
+    - Class: rviz_default_plugins/Path
+      Name: Nav2 plano global (/plan)
+      Enabled: true
+      Topic:
+        Value: /plan
+        Depth: 1
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+      Color: 255; 170; 0
+      Line Style: Billboards
+      Line Width: 0.04
+      Alpha: 1
+      Value: true
+    - Class: rviz_default_plugins/Polygon
+      Name: Nav2 pegada do robo
+      Enabled: true
+      Topic:
+        Value: /local_costmap/published_footprint
+        Depth: 1
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Reliable
+      Color: 0; 200; 255
+      Alpha: 1
+      Value: true
+    - Class: rviz_default_plugins/PointCloud2
+      Name: Obstaculos (/mobi/obstacles)
+      Enabled: true
+      Topic:
+        Value: /mobi/obstacles
+        Depth: 1
+        Durability Policy: Volatile
+        History Policy: Keep Last
+        Reliability Policy: Best Effort
+      Style: Points
+      Size (Pixels): 4
+      Color Transformer: FlatColor
+      Color: 255; 40; 40
+      Use Fixed Frame: true
+      Decay Time: 0
+      Alpha: 1
+      Queue Size: 2
+      Value: true
     - Class: rviz_default_plugins/RobotModel
       Name: Robo
       Enabled: true
@@ -128,7 +200,7 @@ Visualization Manager:
       Covariance y: 0.25
       Covariance yaw: 0.07
       Topic:
-        Value: /initialpose
+        Value: /rtabmap/initialpose
         Depth: 5
         Durability Policy: Volatile
         History Policy: Keep Last

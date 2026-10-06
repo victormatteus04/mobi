@@ -9,6 +9,9 @@
     frame_id: base_link
     qos: 2                    # Ouster publica best effort (perfil sensor_data)
     wait_for_transform: 0.2
+    # Mobi: robo de solo -> odometria/grafo so em x, y, yaw. Sem isso o z da
+    # odometria deriva e o Nav2 passa a ver o chao como obstaculo.
+    Reg/Force3DoF: "true"
 
     # ICP compartilhado entre odometria e fechamento de loop
     Icp/PointToPlane: "true"
@@ -30,9 +33,12 @@
     odom_frame_id: odom       # publica odom -> base_link (convencao do Nav2)
     publish_tf: true
     expected_update_rate: 15.0   # um pouco acima dos 10 Hz do Ouster
+    # Mobi: na Thor o ICP passava de 100 ms/nuvem (p50 107 ms) e descartava
+    # quadros. Usar 1 de cada 2 pontos (131k -> 65k) antes do deskew/voxel.
+    scan_downsampling_step: 2
     Odom/ScanKeyFrameThr: "0.4"
     OdomF2M/ScanSubtractRadius: "0.1"     # = VoxelSize
-    OdomF2M/ScanMaxSize: "15000"
+    OdomF2M/ScanMaxSize: "10000"          # Mobi: 15000 do exemplo pesava na Thor
     OdomF2M/BundleAdjustment: "0"          # 0 = desligado (valor e estrategia, nao bool)
     Icp/CorrespondenceRatio: "0.01"
 

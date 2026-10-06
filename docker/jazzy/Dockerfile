@@ -17,7 +17,17 @@ RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
       ros-jazzy-xacro \
       ros-jazzy-rosbag2-storage-mcap \
       ros-jazzy-rviz2 \
+      ros-jazzy-navigation2 \
+      python3-pip \
+      python3-autobahn \
+      python3-twisted \
+      python3-openssl \
+      python3-service-identity \
     && rm -rf /var/lib/apt/lists/*
+
+# roslibpy (cliente rosbridge do mobi_base_bridge) nao tem pacote apt. Suas
+# dependencias vem do apt acima; --no-deps evita o pip trocar libs do sistema.
+RUN pip3 install --no-cache-dir --break-system-packages --no-deps roslibpy==2.1.0
 
 # ouster-ros do fonte em tag fixa: o binario ros-jazzy-ouster-ros 0.15.1 aborta
 # com "Field 'WINDOW' not found in LidarScan" no nosso OS-0-128 (fw 2.5.3,

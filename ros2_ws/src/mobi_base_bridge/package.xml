@@ -1,0 +1,23 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>mobi_base_bridge</name>
+  <version>0.1.0</version>
+  <description>
+    Ponte minima ROS 2 (Jazzy) com a base ROS 1 do Mobi via rosbridge
+    (websocket): /cmd_vel do Nav2 desce para o mux da base; odometria das
+    rodas, bateria e a fonte do comando sobem para o ROS 2.
+  </description>
+  <maintainer email="victormatteus04@gmail.com">matteus</maintainer>
+  <license>Apache-2.0</license>
+
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>rosidl_runtime_py</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>nav_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

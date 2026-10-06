@@ -45,6 +45,10 @@ discover_ouster() {
   fi
 }
 
+needs_realsense() {
+  [[ " $1 " == *" d435i "* || " $1 " == *" t265 "* || " $1 " == *" d455 "* ]]
+}
+
 sensor_services() {
   local sensor
   for sensor in $1; do
@@ -118,8 +122,9 @@ case "${command_name}" in
   up)
     sensors="$(normalize_sensors "${1:-}")"
     validate_sensors "${sensors}"
-    ensure_realsense_image
-    docker compose up -d zenoh-router ros-master rosserial joystick ros1-bridge description
+    if needs_realsense "${sensors}"; then ensure_realsense_image; fi
+    docker compose up -d zenoh-router ros-master rosserial joystick rosbridge \
+      base-bridge description
     if [[ " ${sensors} " == *" ouster "* ]]; then
       discover_ouster
     fi
@@ -235,6 +240,48 @@ case "${command_name}" in
     ensure_realsense_image
     docker compose run --rm --no-deps bag-recorder /mobi/play-bag.sh "${name}" "$@"
     ;;
+  map)
+    # Mapa novo: SLAM em modo mapeamento gravando em maps/NOME.db.
+    name="${1:?Uso: ./mobi.sh map NOME}"
+    if [[ -e "maps/${name}.db" ]]; then
+      echo "maps/${name}.db ja existe. Use outro nome (ou apague o arquivo)." >&2
+      exit 2
+    fi
+    mkdir -p maps
+    docker compose stop nav slam 2>/dev/null || true
+    SLAM_MAP_NAME="${name}" SLAM_DELETE_DB=true SLAM_LOCALIZATION=false \
+      SLAM_DESKEWING="${SLAM_DESKEWING:-true}" \
+      docker compose up -d --force-recreate zenoh-router description slam
+    echo "Mapeando em maps/${name}.db. Para salvar: ./mobi.sh slam-stop"
+    ;;
+  localize)
+    # Localizacao num mapa salvo (nao altera o mapa). Pre-requisito do Nav2.
+    name="${1:?Uso: ./mobi.sh localize NOME}"
+    if [[ ! -e "maps/${name}.db" ]]; then
+      echo "maps/${name}.db nao existe. Mapas disponiveis:" >&2
+      ls maps/*.db 2>/dev/null >&2 || true
+      exit 2
+    fi
+    docker compose stop slam 2>/dev/null || true
+    SLAM_MAP_NAME="${name}" SLAM_DELETE_DB=false SLAM_LOCALIZATION=true \
+      SLAM_DESKEWING="${SLAM_DESKEWING:-true}" \
+      docker compose up -d --force-recreate zenoh-router description slam
+    echo "Localizando em maps/${name}.db. Depois: ./mobi.sh nav"
+    ;;
+  nav)
+    docker compose up -d --force-recreate nav
+    echo "Nav2 no ar. Destino: '2D Goal Pose' no RViz. O robo so anda com L1 SEGURADO."
+    ;;
+  check-yaw)
+    # Precisa de: up (base-bridge) + ouster + slam/localize rodando.
+    docker compose exec slam /entrypoint.sh \
+      ros2 run mobi_bringup check_lidar_yaw.py
+    ;;
+  slam-stop)
+    # Parar o slam grava o banco do mapa.
+    docker compose stop nav slam
+    ls -la maps/
+    ;;
   slam)
     # Ao vivo: precisa do Ouster no ar (./mobi.sh up ouster).
     docker compose up -d zenoh-router description slam
@@ -276,7 +323,7 @@ case "${command_name}" in
     docker compose run --rm --no-deps gui ros2 run rqt_image_view rqt_image_view
     ;;
   down)
-    COMPOSE_PROFILES="ouster,t265,d435i,d455,tools,gui,dashboard,slam" docker compose down
+    COMPOSE_PROFILES="ouster,t265,d435i,d455,tools,gui,dashboard,slam,nav,legacy-humble" docker compose down
     ;;
   help|*)
     cat <<'EOF'
@@ -308,7 +355,12 @@ Metadados da sessao (viram metadata.json + README.md dentro da bag):
     MOBI_NOTES="teste de corredor" ./mobi.sh bag NOME [grupos]
   ./mobi.sh status
   ./mobi.sh logs [SERVICOS...]
-  ./mobi.sh slam             # SLAM ao vivo (RTAB-Map + ICP no Ouster), mapa em maps/
+  ./mobi.sh map NOME         # mapa novo -> maps/NOME.db (nao sobrescreve)
+  ./mobi.sh localize NOME    # localizacao num mapa salvo (pre-requisito do nav)
+  ./mobi.sh nav              # Nav2 (robo so anda com L1/LB segurado)
+  ./mobi.sh slam-stop        # para nav + slam (grava o mapa)
+  ./mobi.sh check-yaw        # confere a montagem do Ouster (dirija reto p/ frente)
+  ./mobi.sh slam             # SLAM ao vivo com as variaveis SLAM_* do ambiente
   ./mobi.sh slam-bag NOME    # SLAM offline sobre o Ouster de uma bag -> maps/NOME.db
   ./mobi.sh viz              # RViz2 em container (TF, RobotModel, PointCloud2, imagens, pose)
   ./mobi.sh rqt              # rqt_image_view avulso, em container

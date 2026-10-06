@@ -90,21 +90,43 @@ services:
         condition: service_healthy
       rosserial:
         condition: service_started
-    devices:
-      - "${JOY_DEVICE:-/dev/input/js0}:/dev/input/js0"
+    # /dev/input inteiro (e nao "devices:"): o container sobe mesmo com o
+    # controle Bluetooth desligado e o joy_node abre o js quando ele conectar.
+    volumes:
+      - /dev/input:/dev/input
+    device_cgroup_rules:
+      - "c 13:* rmw"
     command:
       - roslaunch
       - /etc/mobi/mobi-teleop.launch
-      - joy_dev:=/dev/input/js0
+      - "joy_dev:=${JOY_DEVICE:-/dev/input/js0}"
       - "joy_config:=/etc/mobi/${JOY_CONFIG:-mobi-xbox.config.yaml}"
     healthcheck:
-      test: ["CMD-SHELL", ". /opt/mobi_ws/devel/setup.sh && rosnode ping -c 1 /joy_node >/dev/null 2>&1 && rosnode ping -c 1 /mobi_joy_teleop >/dev/null 2>&1"]
+      test: ["CMD-SHELL", ". /opt/mobi_ws/devel/setup.sh && rosnode ping -c 1 /mobi_cmd_mux >/dev/null 2>&1 && rosnode ping -c 1 /mobi_joy_teleop >/dev/null 2>&1"]
       interval: 5s
       timeout: 3s
       retries: 12
       start_period: 5s
 
+  # Ponte ROS 1 <-> ROS 2 (Jazzy) via websocket: o no ROS 2 base_bridge
+  # (servico base-bridge) conecta aqui em ws://localhost:9090.
+  rosbridge:
+    <<: *ros1-service
+    container_name: mobi_rosbridge
+    depends_on:
+      ros-master:
+        condition: service_healthy
+    command:
+      - roslaunch
+      - rosbridge_server
+      - rosbridge_websocket.launch
+      - "port:=${ROSBRIDGE_PORT:-9090}"
+      - address:=127.0.0.1
+
+  # Legado (Humble/Fast DDS): nao conversa com a stack Jazzy/Zenoh. Fica fora
+  # do "up" padrao; compilar isto na Thor e demorado e inutil hoje.
   ros1-bridge:
+    profiles: ["legacy-humble"]
     build:
       context: .
       dockerfile: Dockerfile.bridge
@@ -177,6 +199,9 @@ services:
     <<: *jazzy-service
     profiles: ["slam"]
     container_name: mobi_slam
+    # Nunca reinicia sozinho: um container criado com SLAM_DELETE_DB=true
+    # apagaria o mapa a cada boot. Suba com ./mobi.sh map|localize.
+    restart: "no"
     depends_on: [zenoh-router]
     volumes:
       - ./maps:/maps
@@ -191,6 +216,33 @@ services:
       - "delete_db:=${SLAM_DELETE_DB:-false}"
       - "database_path:=/maps/${SLAM_MAP_NAME:-rtabmap}.db"
       - "deskewing:=${SLAM_DESKEWING:-false}"
+
+  # Ponte com a base ROS 1 (via rosbridge): /cmd_vel do Nav2 -> /cmd_vel_nav
+  # no ROS 1; /odom, bateria e fonte do comando sobem como /base/*.
+  base-bridge:
+    <<: *jazzy-service
+    container_name: mobi_base_bridge
+    depends_on: [zenoh-router, rosbridge]
+    command:
+      - ros2
+      - run
+      - mobi_base_bridge
+      - base_bridge
+      - --ros-args
+      - -p
+      - "rosbridge_port:=${ROSBRIDGE_PORT:-9090}"
+
+  # Nav2 sobre o mapa do RTAB-Map (exige o slam em modo localizacao).
+  # Parametros em ros2_ws/src/mobi_bringup/config/nav2_params.yaml (bind mount).
+  nav:
+    <<: *jazzy-service
+    profiles: ["nav"]
+    container_name: mobi_nav
+    restart: "no"
+    depends_on: [zenoh-router]
+    volumes:
+      - ./ros2_ws/src/mobi_bringup:/ros2_ws/src/mobi_bringup:ro
+    command: ["ros2", "launch", "mobi_bringup", "nav.launch.py"]
 
   # Reproducao de bag na stack Jazzy (uso: ./mobi.sh slam-bag NOME).
   player:
